@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Space Dogfight - Controls Test</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
+      font-family: monospace;
+      color: #fff;
+    }
+    #container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    #status {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 100;
+    }
+    #controls {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 100;
+    }
+    #input-display {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 100;
+      min-width: 150px;
+      text-align: left;
+    }
+    .active {
+      color: #00ff00;
+    }
+    .inactive {
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  <div id="status">Initializing...</div>
+  <div id="controls">
+    <p>W/S: Forward/Back</p>
+    <p>A/D: Turn Left/Right</p>
+    <p>Q/E: Roll Left/Right</p>
+    <p>Space/Shift: Up/Down</p>
+    <p>R: Brake</p>
+    <p>Mouse: Aim</p>
+    <p>Click: Fire</p>
+  </div>
+  <div id="input-display">
+    <div id="key-w" class="inactive">W</div>
+    <div id="key-a" class="inactive">A</div>
+    <div id="key-s" class="inactive">S</div>
+    <div id="key-d" class="inactive">D</div>
+    <div id="key-q" class="inactive">Q</div>
+    <div id="key-e" class="inactive">E</div>
+    <div id="key-space" class="inactive">SPACE</div>
+    <div id="key-shift" class="inactive">SHIFT</div>
+    <div id="key-r" class="inactive">R</div>
+    <div id="mouse-pos" class="inactive">MOUSE: 0, 0</div>
+    <div id="mouse-left" class="inactive">LEFT CLICK</div>
+    <div id="mouse-right" class="inactive">RIGHT CLICK</div>
+    <div id="speed">SPEED: 0</div>
+    <div id="position">POS: 0, 0, 0</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.162.0/three.min.js"></script>
+  <script>
+    // Wait for the DOM to be fully loaded
+    window.addEventListener('DOMContentLoaded', init);
+
+    function init() {
+      const statusElement = document.getElementById('status');
+      
+      try {
+        // Initialize 3D scene
+        const container = document.getElementById('container');
+        
+        // Create scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000020);
+        
+        // Create camera
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 5, 15);
+        
+        // Create renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+        
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+        
+        // Create spaceship
+        const shipGroup = new THREE.Group();
+        scene.add(shipGroup);
+        
+        // Ship body
+        const bodyGeometry = new THREE.ConeGeometry(1, 3, 8);
+        const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0x3377ff });
+        const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        bodyMesh.rotation.x = Math.PI / 2; // Point forward
+        shipGroup.add(bodyMesh);
+        
+        // Wings
+        const wingGeometry = new THREE.BoxGeometry(3, 0.2, 1);
+        const wingMaterial = new THREE.MeshPhongMaterial({ color: 0x3377ff });
+        
+        const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+        leftWing.position.set(-1.5, 0, 0);
+        shipGroup.add(leftWing);
+        
+        const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+        rightWing.position.set(1.5, 0, 0);
+        shipGroup.add(rightWing);
+        
+        // Muzzle flashes (normally hidden)
+        const muzzleGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+        const muzzleMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, visible: false });
+        
+        const leftMuzzle = new THREE.Mesh(muzzleGeometry, muzzleMaterial.clone());
+        leftMuzzle.position.set(-1.5, 0, -1.5);
+        shipGroup.add(leftMuzzle);
+        
+        const rightMuzzle = new THREE.Mesh(muzzleGeometry, muzzleMaterial.clone());
+        rightMuzzle.position.set(1.5, 0, -1.5);
+        shipGroup.add(rightMuzzle);
+        
+        // Add grid for reference
+        const gridHelper = new THREE.GridHelper(100, 20, 0x444444, 0x222222);
+        scene.add(gridHelper);
+        
+        // Projectiles array
+        const projectiles = [];
+        
+        // Ship state
+        const shipState = {
+          // Position and movement
+          position: new THREE.Vector3(0, 3, 0),
+          velocity: new THREE.Vector3(0, 0, 0),
+          rotation: new THREE.Euler(0, 0, 0),
+          
+          // Physics properties
+          mass: 1,
+          maxSpeed: 30,
+          acceleration: 20,
+          drag: 0.98,
+          rotationSpeed: 2,
+          rollSpeed: 3,
+          
+          // Weapons
+          lastShot: 0,
+          fireRate: 5, // shots per second
+          
+          // Status for display
+          speed: 0
+        };
+        
+        // Input state
+        const input = {
+          forward: false,
+          backward: false,
+          left: false,
+          right: false,
+          up: false,
+          down: false,
+          rollLeft: false,
+          rollRight: false,
+          brake: false,
+          mouseX: 0,
+          mouseY: 0,
+          leftClick: false,
+          rightClick: false
+        };
+        
+        // Setup input handlers
+        window.addEventListener('keydown', (e) => {
+          switch(e.code) {
+            case 'KeyW': 
+              input.forward = true; 
+              document.getElementById('key-w').className = 'active';
+              break;
+            case 'KeyS': 
+              input.backward = true; 
+              document.getElementById('key-s').className = 'active';
+              break;
+            case 'KeyA': 
+              input.left = true; 
+              document.getElementById('key-a').className = 'active';
+              break;
+            case 'KeyD': 
+              input.right = true; 
+              document.getElementById('key-d').className = 'active';
+              break;
+            case 'KeyQ': 
+              input.rollLeft = true; 
+              document.getElementById('key-q').className = 'active';
+              break;
+            case 'KeyE': 
+              input.rollRight = true; 
+              document.getElementById('key-e').className = 'active';
+              break;
+            case 'Space': 
+              input.up = true; 
+              document.getElementById('key-space').className = 'active';
+              break;
+            case 'ShiftLeft': 
+              input.down = true; 
+              document.getElementById('key-shift').className = 'active';
+              break;
+            case 'KeyR': 
+              input.brake = true; 
+              document.getElementById('key-r').className = 'active';
+              break;
+          }
+        });
+        
+        window.addEventListener('keyup', (e) => {
+          switch(e.code) {
+            case 'KeyW': 
+              input.forward = false; 
+              document.getElementById('key-w').className = 'inactive';
+              break;
+            case 'KeyS': 
+              input.backward = false; 
+              document.getElementById('key-s').className = 'inactive';
+              break;
+            case 'KeyA': 
+              input.left = false; 
+              document.getElementById('key-a').className = 'inactive';
+              break;
+            case 'KeyD': 
+              input.right = false; 
+              document.getElementById('key-d').className = 'inactive';
+              break;
+            case 'KeyQ': 
+              input.rollLeft = false; 
+              document.getElementById('key-q').className = 'inactive';
+              break;
+            case 'KeyE': 
+              input.rollRight = false; 
+              document.getElementById('key-e').className = 'inactive';
+              break;
+            case 'Space': 
+              input.up = false; 
+              document.getElementById('key-space').className = 'inactive';
+              break;
+            case 'ShiftLeft': 
+              input.down = false; 
+              document.getElementById('key-shift').className = 'inactive';
+              break;
+            case 'KeyR': 
+              input.brake = false; 
+              document.getElementById('key-r').className = 'inactive';
+              break;
+          }
+        });
+        
+        window.addEventListener('mousemove', (e) => {
+          input.mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+          input.mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+          
+          document.getElementById('mouse-pos').textContent = `MOUSE: ${input.mouseX.toFixed(2)}, ${input.mouseY.toFixed(2)}`;
+          document.getElementById('mouse-pos').className = 'active';
+          
+          // Reset to inactive after a short delay
+          setTimeout(() => {
+            document.getElementById('mouse-pos').className = 'inactive';
+          }, 100);
+        });
+        
+        window.addEventListener('mousedown', (e) => {
+          if (e.button === 0) {
+            input.leftClick = true;
+            document.getElementById('mouse-left').className = 'active';
+          } else if (e.button === 2) {
+            input.rightClick = true;
+            document.getElementById('mouse-right').className = 'active';
+          }
+        });
+        
+        window.addEventListener('mouseup', (e) => {
+          if (e.button === 0) {
+            input.leftClick = false;
+            document.getElementById('mouse-left').className = 'inactive';
+          } else if (e.button === 2) {
+            input.rightClick = false;
+            document.getElementById('mouse-right').className = 'inactive';
+          }
+        });
+        
+        // Prevent context menu on right click
+        window.addEventListener('contextmenu', e => e.preventDefault());
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Create laser projectile
+        function fireLaser() {
+          const now = performance.now();
+          const timeSinceLastShot = (now - shipState.lastShot) / 1000; // in seconds
+          
+          if (timeSinceLastShot < 1 / shipState.fireRate) {
+            return; // Too soon to fire again
+          }
+          
+          shipState.lastShot = now;
+          
+          // Flash muzzles
+          leftMuzzle.material.visible = true;
+          rightMuzzle.material.visible = true;
+          
+          // Hide after a short delay
+          setTimeout(() => {
+            leftMuzzle.material.visible = false;
+            rightMuzzle.material.visible = false;
+          }, 50);
+          
+          // Create projectiles from both muzzles
+          const laserGeometry = new THREE.BoxGeometry(0.1, 0.1, 2);
+          const laserMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+          
+          // Get world positions of muzzles
+          const leftMuzzlePos = new THREE.Vector3();
+          leftMuzzle.getWorldPosition(leftMuzzlePos);
+          
+          const rightMuzzlePos = new THREE.Vector3();
+          rightMuzzle.getWorldPosition(rightMuzzlePos);
+          
+          // Create forward direction based on ship rotation
+          const forward = new THREE.Vector3(0, 0, -1);
+          forward.applyEuler(shipState.rotation);
+          
+          // Create left laser
+          const leftLaser = new THREE.Mesh(laserGeometry, laserMaterial.clone());
+          leftLaser.position.copy(leftMuzzlePos);
+          leftLaser.rotation.copy(shipState.rotation);
+          scene.add(leftLaser);
+          
+          // Create right laser
+          const rightLaser = new THREE.Mesh(laserGeometry, laserMaterial.clone());
+          rightLaser.position.copy(rightMuzzlePos);
+          rightLaser.rotation.copy(shipState.rotation);
+          scene.add(rightLaser);
+          
+          // Add to projectiles array with velocity
+          projectiles.push({
+            mesh: leftLaser,
+            velocity: forward.clone().multiplyScalar(50),
+            life: 2 // seconds
+          });
+          
+          projectiles.push({
+            mesh: rightLaser,
+            velocity: forward.clone().multiplyScalar(50),
+            life: 2 // seconds
+          });
+        }
+        
+        // Animation loop
+        let lastTime = performance.now();
+        function animate() {
+          requestAnimationFrame(animate);
+          
+          const now = performance.now();
+          const deltaTime = (now - lastTime) / 1000; // in seconds
+          lastTime = now;
+          
+          // Update ship based on input
+          updateShip(deltaTime);
+          
+          // Update projectiles
+          updateProjectiles(deltaTime);
+          
+          // Update camera
+          updateCamera();
+          
+          // Update status display
+          updateStatus();
+          
+          // Render scene
+          renderer.render(scene, camera);
+        }
+        
+        function updateShip(deltaTime) {
+          // Calculate thrust direction
+          const thrustDirection = new THREE.Vector3(0, 0, 0);
+          
+          if (input.forward) thrustDirection.z -= 1;
+          if (input.backward) thrustDirection.z += 1;
+          
+          // Apply thrust if there is any
+          if (thrustDirection.length() > 0) {
+            thrustDirection.normalize();
+            
+            // Convert to world space
+            const worldThrustDir = thrustDirection.clone();
+            worldThrustDir.applyEuler(shipState.rotation);
+            
+            // Apply acceleration
+            shipState.velocity.add(
+              worldThrustDir.multiplyScalar(shipState.acceleration * deltaTime)
+            );
+          }
+          
+          // Apply rotation based on input
+          if (input.left) {
+            shipState.rotation.y += shipState.rotationSpeed * deltaTime;
+          }
+          if (input.right) {
+            shipState.rotation.y -= shipState.rotationSpeed * deltaTime;
+          }
+          
+          // Apply roll
+          if (input.rollLeft) {
+            shipState.rotation.z += shipState.rollSpeed * deltaTime;
+          }
+          if (input.rollRight) {
+            shipState.rotation.z -= shipState.rollSpeed * deltaTime;
+          }
+          
+          // Apply vertical movement
+          if (input.up) {
+            shipState.velocity.y += shipState.acceleration * deltaTime;
+          }
+          if (input.down) {
+            shipState.velocity.y -= shipState.acceleration * deltaTime;
+          }
+          
+          // Apply mouse aim (pitch and yaw)
+          const targetRotation = new THREE.Euler(
+            input.mouseY * 0.5, // Pitch
+            -input.mouseX * 0.5, // Yaw
+            shipState.rotation.z // Keep current roll
+          );
+          
+          // Smoothly interpolate rotation
+          shipState.rotation.x += (targetRotation.x - shipState.rotation.x) * 5 * deltaTime;
+          shipState.rotation.y += (targetRotation.y - shipState.rotation.y) * 5 * deltaTime;
+          
+          // Handle braking
+          if (input.brake) {
+            shipState.velocity.multiplyScalar(0.95);
+          }
+          
+          // Apply drag
+          shipState.velocity.multiplyScalar(shipState.drag);
+          
+          // Limit speed
+          const speed = shipState.velocity.length();
+          shipState.speed = speed; // Store for display
+          
+          if (speed > shipState.maxSpeed) {
+            shipState.velocity.normalize().multiplyScalar(shipState.maxSpeed);
+          }
+          
+          // Update position
+          shipState.position.add(shipState.velocity.clone().multiplyScalar(deltaTime));
+          
+          // Update ship visual
+          shipGroup.position.copy(shipState.position);
+          shipGroup.rotation.copy(shipState.rotation);
+          
+          // Fire weapons
+          if (input.leftClick) {
+            fireLaser();
+          }
+        }
+        
+        function updateProjectiles(deltaTime) {
+          // Update existing projectiles
+          for (let i = projectiles.length - 1; i >= 0; i--) {
+            const projectile = projectiles[i];
+            
+            // Update position
+            projectile.mesh.position.add(
+              projectile.velocity.clone().multiplyScalar(deltaTime)
+            );
+            
+            // Update lifetime
+            projectile.life -= deltaTime;
+            
+            // Remove if expired
+            if (projectile.life <= 0) {
+              scene.remove(projectile.mesh);
+              projectiles.splice(i, 1);
+            }
+          }
+        }
+        
+        function updateCamera() {
+          // Calculate camera position based on ship
+          const cameraOffset = new THREE.Vector3(0, 4, 15);
+          cameraOffset.applyEuler(shipState.rotation);
+          
+          const targetPosition = shipState.position.clone().add(cameraOffset);
+          
+          // Smoothly move camera
+          camera.position.lerp(targetPosition, 0.1);
+          
+          // Look at ship
+          camera.lookAt(shipState.position);
+        }
+        
+        function updateStatus() {
+          // Update position display
+          document.getElementById('position').textContent = 
+            `POS: ${shipState.position.x.toFixed(1)}, ${shipState.position.y.toFixed(1)}, ${shipState.position.z.toFixed(1)}`;
+          
+          // Update speed display
+          document.getElementById('speed').textContent = `SPEED: ${shipState.speed.toFixed(1)}`;
+          
+          // Update status message
+          statusElement.textContent = `Running - ${projectiles.length} projectiles active`;
+        }
+        
+        // Initialize ship position
+        shipGroup.position.copy(shipState.position);
+        
+        // Start animation
+        animate();
+        
+        // Update status
+        statusElement.textContent = "Controls test ready - use WASD to move";
+        
+      } catch (error) {
+        console.error("Initialization error:", error);
+        statusElement.textContent = `Error: ${error.message}`;
+      }
+    }
+  </script>
+</body>
+</html>

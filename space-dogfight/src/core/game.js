@@ -4,7 +4,7 @@
  * This class handles the core game loop and initialization.
  */
 
-import * as THREE from 'three';
+import THREE from '../utils/three';
 import Time from './time';
 import Input from './input';
 import Physics from './physics';
@@ -22,7 +22,7 @@ export default class Game {
     this.isPaused = false;
     this.entities = [];
     this.projectiles = [];
-    
+
     // Get DOM elements
     this.container = document.getElementById('game-container');
     this.loadingScreen = document.getElementById('loading-screen');
@@ -32,6 +32,14 @@ export default class Game {
     this.voiceButtonElement = document.getElementById('voice-button');
     this.transcriptionElement = document.getElementById('voice-transcription');
     this.feedbackElement = document.getElementById('command-feedback');
+
+    // Make sure loading screen is visible
+    if (this.loadingScreen) {
+      this.loadingScreen.style.display = 'flex';
+      console.log("Loading screen shown");
+    } else {
+      console.error("Loading screen element not found");
+    }
     
     // Initialize Three.js scene
     this.scene = new THREE.Scene();
@@ -48,7 +56,17 @@ export default class Game {
     // Initialize core systems
     this.time = new Time();
     this.renderer = new Renderer(null, this.scene);
-    this.container.appendChild(this.renderer.instance.domElement);
+
+    // Make sure container exists before appending canvas
+    if (this.container) {
+      // Check if renderer's domElement is already in the DOM
+      if (!this.container.contains(this.renderer.instance.domElement)) {
+        this.container.appendChild(this.renderer.instance.domElement);
+      }
+    } else {
+      console.error('Game container element not found in the DOM.');
+    }
+
     this.camera = new Camera(this.renderer.getAspect());
     this.input = new Input(this.renderer.instance.domElement);
     this.physics = new Physics();
@@ -58,11 +76,18 @@ export default class Game {
     
     // Setup event listeners
     window.addEventListener('resize', this.onResize.bind(this));
-    document.getElementById('start-game').addEventListener('click', this.startGame.bind(this));
-    
+
+    // Add start game button listener if the element exists
+    const startButton = document.getElementById('start-game');
+    if (startButton) {
+      startButton.addEventListener('click', this.startGame.bind(this));
+    } else {
+      console.warn('Start game button not found in the DOM, will auto-start after loading.');
+    }
+
     // Create environment
     this.createEnvironment();
-    
+
     // Start loading assets
     this.loadAssets();
   }
@@ -303,10 +328,10 @@ export default class Game {
   async loadAssets() {
     // Here we would load models, textures, sounds, etc.
     // For now, let's just simulate loading with a timeout
-    
+
     // Create loading progress bar
     const loadingBar = document.getElementById('loading-bar');
-    
+
     // Simulate loading progress
     let progress = 0;
     const interval = setInterval(() => {
@@ -314,12 +339,17 @@ export default class Game {
       if (loadingBar) {
         loadingBar.style.width = `${progress}%`;
       }
-      
+
       if (progress >= 100) {
         clearInterval(interval);
         setTimeout(() => {
-          this.loadingScreen.style.display = 'none';
-          console.log('Assets loaded');
+          if (this.loadingScreen) {
+            this.loadingScreen.style.display = 'none';
+            console.log('Assets loaded, hiding loading screen');
+          }
+
+          // Auto-start the game after loading is complete
+          this.startGame();
         }, 500);
       }
     }, 100);
@@ -485,12 +515,22 @@ export default class Game {
    */
   startGame() {
     if (!this.isRunning) {
+      console.log("Starting game...");
       this.init();
-      this.menu.classList.remove('active');
-      this.hud.classList.remove('hidden');
+
+      if (this.menu) this.menu.classList.remove('active');
+      if (this.hud) this.hud.classList.remove('hidden');
+
+      // Make sure loading screen is hidden after game starts
+      if (this.loadingScreen) {
+        this.loadingScreen.style.display = 'none';
+        console.log("Loading screen hidden");
+      }
+
       this.isRunning = true;
       this.time.start();
       this.update();
+      console.log("Game started");
     }
   }
   
@@ -580,7 +620,10 @@ export default class Game {
   }
 }
 
-// Initialize the game when the DOM is loaded
-window.addEventListener('DOMContentLoaded', () => {
-  const game = new Game();
+// Initialize the game when the DOM is fully loaded
+window.addEventListener('load', () => {
+  // Make sure the DOM is fully ready before creating the game
+  setTimeout(() => {
+    const game = new Game();
+  }, 100);
 });

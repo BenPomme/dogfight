@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import THREE from '../utils/three';
 
 export default class AIController {
   constructor(spaceship, target) {

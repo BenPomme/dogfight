@@ -4,7 +4,7 @@
  * This class represents a spaceship in the game, which can be player-controlled or AI.
  */
 
-import * as THREE from 'three';
+import THREE from '../utils/three';
 import AIController from '../ai/aiController';
 
 export default class Spaceship {

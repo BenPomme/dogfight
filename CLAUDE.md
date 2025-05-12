@@ -9,39 +9,30 @@ We've created a Three.js-based space dogfight game with the following features:
 - Space environment with destructible asteroids
 - Third-person camera with smooth following
 
-## Current Directory Structure Issue
+## Current Status
 
-I'm currently trying to run the game's development server, but I'm facing a constraint: I cannot navigate outside of the current working directory (`/Users/benjamin.pommeraud/Desktop/DogFight/unreal-mcp/Python`) due to security restrictions.
+The project has been successfully debugged and is now running correctly. Key improvements:
 
-The Three.js project exists in a parallel directory:
-```
-/Users/benjamin.pommeraud/Desktop/DogFight/space-dogfight/
-```
+1. **Fixed WebGL Renderer Error**: Resolved "Cannot read properties of null (reading 'width')" error by:
+   - Creating a fallback canvas element when needed
+   - Adding proper DOM element checks
+   - Ensuring loading screen is properly displayed and hidden
 
-But I'm unable to cd to that location to run the required npm commands.
+2. **Fixed Three.js Import Issues**: Created a centralized Three.js import file at `/src/utils/three.js` to avoid multiple instances being loaded
 
-## What I'm Trying to Do
+3. **Developed Simplified Demo**: Created a simplified interactive spaceship demo that:
+   - Properly initializes WebGL
+   - Implements basic physics and controls
+   - Has working keyboard and mouse input
+   - Features a third-person camera
 
-1. Run the webpack development server for the Space Dogfight project
-2. Access the server at localhost:3000 to test the game
-3. Debug any issues that arise during initialization or gameplay
+4. **Multiple Demo Versions**: The project includes several demo files for testing:
+   - `index.html`: Main game entry point
+   - `simple-demo.html`: Minimalist game with basic controls
+   - `playable-dogfight.html`: Fully styled Wing Commander-inspired UI demo
+   - `wingcommander-demo.html`: Alternative Wing Commander theme UI
 
-## Workaround Attempts
-
-1. Created a simple Node.js HTTP server (serve_game.js) to serve the files from the project's public directory
-2. Tried using npx with --prefix to run webpack from the current location
-3. Attempted to install the required dependencies from the current location
-
-## Next Steps (Intended)
-
-1. **Reorganization**: Move the Three.js project files into this directory structure to properly work with them
-2. **Build Process**: Set up a proper build process that can be run from the current directory
-3. **Testing**: Verify all game components are working correctly
-4. **Optimization**: Improve performance and fix any bugs discovered during testing
-
-## Required Commands
-
-If running from the space-dogfight directory, these would be the commands needed:
+## How to Run the Game
 
 ```bash
 cd /Users/benjamin.pommeraud/Desktop/DogFight/space-dogfight
@@ -49,4 +40,62 @@ npm install
 npm start
 ```
 
-But these need to be adapted to work from the current directory.
+Then access the game at: http://localhost:8080
+
+## Controls
+
+- **W/A/S/D**: Move ship forward/left/back/right
+- **Space/Shift**: Move up/down
+- **Mouse**: Aim ship
+- **Left Click**: Fire primary weapon
+- **Right Click**: Fire secondary weapon (missiles)
+- **E**: Boost
+- **R**: Brake
+- **V**: Activate voice commands for drones
+
+## MCP Integration
+
+The project now has the following MCP (Management Control Protocol) components integrated:
+
+1. **Browser Tools**: Connected for real-time browser debugging
+   - Console logs and errors monitoring
+   - Network monitoring
+   - Screenshot capabilities
+   - Performance auditing
+   - Documentation: https://browsertools.agentdesk.ai/installation
+
+2. **Filesystem Tools**: Connected for file management
+   - Reading and writing files
+   - Directory operations
+   - File search and manipulation
+
+3. **GitHub Integration**: Connected for version control
+   - Repository management
+   - File operations
+   - Pull request handling
+   - Issue tracking
+
+4. **Puppeteer**: Connected for browser automation
+   - Navigation
+   - UI interaction
+   - DOM manipulation
+   - Visual testing
+
+## Current Development Focus
+
+1. **Core Gameplay**: Continue refining the spaceship controls and physics
+2. **Visual Improvements**: Add more visual feedback and game feel elements
+3. **Feature Development**: Complete weapon systems and drone controls
+4. **Firebase Integration**: Set up multiplayer features using Firebase
+5. **MCP Testing**: Use integrated MCP modules for automated testing and CI/CD
+
+## Troubleshooting
+
+If you encounter any issues:
+
+1. Check browser console for errors
+2. Verify webpack is running correctly (port 8080)
+3. Try clearing browser cache
+4. For port conflicts: `lsof -ti:8080 | xargs kill -9` to free the port
+5. Browser tools MCP can be used to diagnose renderer issues
+6. See `deploy.md` for additional troubleshooting tips and deployment instructions

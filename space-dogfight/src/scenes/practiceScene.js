@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import THREE from '../utils/three';
 import Spaceship from '../entities/spaceship';
 import InputManager from '../core/inputManager';
 

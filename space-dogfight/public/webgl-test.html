@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebGL and Three.js Test</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
+      color: #fff;
+      font-family: monospace;
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      text-align: center;
+      z-index: 100;
+      display: block;
+    }
+    .status {
+      margin: 10px;
+      padding: 10px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 5px;
+      display: inline-block;
+    }
+    .success {
+      color: #0f0;
+    }
+    .error {
+      color: #f00;
+    }
+    .warning {
+      color: #ff0;
+    }
+    #container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <div class="status" id="webgl-status">Testing WebGL...</div>
+    <div class="status" id="three-status">Testing Three.js...</div>
+    <div class="status" id="renderer-status">Testing Renderer...</div>
+  </div>
+  <div id="container"></div>
+
+  <script>
+    // Test WebGL directly
+    function testWebGL() {
+      const status = document.getElementById('webgl-status');
+      
+      try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        
+        if (!gl) {
+          status.textContent = 'WebGL not supported';
+          status.className = 'status error';
+          return false;
+        }
+        
+        // Get WebGL info
+        let info = 'WebGL supported';
+        
+        try {
+          const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+          if (debugInfo) {
+            const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+            const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+            info += `: ${vendor} - ${renderer}`;
+          }
+        } catch (e) {
+          info += ' (detailed info unavailable)';
+        }
+        
+        status.textContent = info;
+        status.className = 'status success';
+        return true;
+      } catch (e) {
+        status.textContent = `WebGL error: ${e.message}`;
+        status.className = 'status error';
+        return false;
+      }
+    }
+    
+    // Load and test Three.js
+    function loadThree() {
+      return new Promise((resolve, reject) => {
+        const status = document.getElementById('three-status');
+        status.textContent = 'Loading Three.js...';
+        
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.162.0/three.min.js';
+        script.onload = () => {
+          status.textContent = `Three.js loaded (r${THREE.REVISION})`;
+          status.className = 'status success';
+          resolve(true);
+        };
+        script.onerror = (e) => {
+          status.textContent = 'Failed to load Three.js';
+          status.className = 'status error';
+          reject(e);
+        };
+        
+        document.head.appendChild(script);
+      });
+    }
+    
+    // Test Three.js renderer
+    function testRenderer() {
+      const status = document.getElementById('renderer-status');
+      const container = document.getElementById('container');
+      
+      try {
+        status.textContent = 'Creating renderer...';
+        
+        // Try to create renderer with different settings
+        let renderer = null;
+        
+        try {
+          // First try with normal settings
+          renderer = new THREE.WebGLRenderer({ antialias: true });
+          status.textContent = 'Renderer created with antialias';
+        } catch (e) {
+          console.error('Failed to create renderer with antialias:', e);
+          
+          try {
+            // Try without antialias
+            renderer = new THREE.WebGLRenderer({ antialias: false });
+            status.textContent = 'Renderer created without antialias';
+          } catch (e) {
+            console.error('Failed to create renderer without antialias:', e);
+            
+            try {
+              // Try with fallback canvas
+              const canvas = document.createElement('canvas');
+              canvas.width = 1;
+              canvas.height = 1;
+              
+              renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                antialias: false,
+                alpha: false,
+                powerPreference: 'low-power'
+              });
+              status.textContent = 'Renderer created with fallback settings';
+            } catch (e) {
+              console.error('Failed to create renderer with fallback settings:', e);
+              throw e;
+            }
+          }
+        }
+        
+        // If we got here, we have a renderer
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+        
+        // Create a simple scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020209);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+        
+        // Add lighting
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+        
+        // Add a rotating cube
+        const geometry = new THREE.BoxGeometry();
+        const material = new THREE.MeshPhongMaterial({ color: 0x00aaff });
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+        
+        // Simple animation
+        function animate() {
+          requestAnimationFrame(animate);
+          
+          cube.rotation.x += 0.01;
+          cube.rotation.y += 0.01;
+          
+          renderer.render(scene, camera);
+        }
+        
+        // Handle resize
+        window.addEventListener('resize', () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Start animation
+        animate();
+        
+        status.className = 'status success';
+        return true;
+      } catch (e) {
+        status.textContent = `Renderer error: ${e.message}`;
+        status.className = 'status error';
+        console.error('Renderer test failed:', e);
+        return false;
+      }
+    }
+    
+    // Run all tests
+    async function runTests() {
+      const webglSupported = testWebGL();
+      
+      if (webglSupported) {
+        try {
+          await loadThree();
+          testRenderer();
+        } catch (e) {
+          console.error('Test sequence failed:', e);
+        }
+      }
+    }
+    
+    // Start tests
+    runTests();
+  </script>
+</body>
+</html>

@@ -4,7 +4,7 @@
  * This system manages all projectiles in the game, including lasers, missiles, and other weapons.
  */
 
-import * as THREE from 'three';
+import THREE from '../utils/three';
 
 export default class ProjectileManager {
   constructor(scene, renderer, physics) {

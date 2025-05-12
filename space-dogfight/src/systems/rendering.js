@@ -4,23 +4,50 @@
  * This class manages the rendering of the game using Three.js.
  */
 
-import * as THREE from 'three';
+import THREE from '../utils/three';
 import Stats from 'stats.js';
 
 export default class Renderer {
   constructor(canvas, scene) {
     this.scene = scene;
-    // If canvas is provided, use it; otherwise, let Three.js create it
-    if (canvas) {
+    // Make sure we have a container element in the DOM before creating the renderer
+    const container = document.getElementById('game-container');
+    if (!container) {
+      console.error('Game container element not found. Creating fallback container.');
+      const fallbackContainer = document.createElement('div');
+      fallbackContainer.id = 'game-container';
+      document.body.appendChild(fallbackContainer);
+    }
+
+    // Create a dummy canvas we can use for initialization
+    const dummyCanvas = document.createElement('canvas');
+    dummyCanvas.width = 1;
+    dummyCanvas.height = 1;
+
+    // Try to create renderer with provided or dummy canvas
+    try {
+      if (canvas) {
+        this.instance = new THREE.WebGLRenderer({
+          canvas: canvas,
+          antialias: true,
+          alpha: false
+        });
+      } else {
+        // Always use our dummy canvas to avoid the width/height null error
+        this.instance = new THREE.WebGLRenderer({
+          canvas: dummyCanvas,
+          antialias: true,
+          alpha: false
+        });
+      }
+    } catch (error) {
+      console.error('Error creating WebGLRenderer:', error);
+      // Fallback to minimal settings
       this.instance = new THREE.WebGLRenderer({
-        canvas: canvas,
-        antialias: true,
-        alpha: false
-      });
-    } else {
-      this.instance = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: false
+        canvas: dummyCanvas,
+        antialias: false,
+        alpha: false,
+        powerPreference: 'low-power'
       });
     }
     
@@ -42,9 +69,13 @@ export default class Renderer {
     this.stats = new Stats();
     this.stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
     
-    // Add stats panel to DOM if in development mode
-    if (process.env.NODE_ENV === 'development') {
-      document.getElementById('stats').appendChild(this.stats.dom);
+    // Add stats panel to DOM
+    const statsContainer = document.getElementById('stats');
+    if (statsContainer) {
+      statsContainer.appendChild(this.stats.dom);
+    } else {
+      console.warn('Stats container not found, adding stats to body');
+      document.body.appendChild(this.stats.dom);
     }
     
     // Space environment effects

@@ -30,10 +30,10 @@ Jeu de combat spatial 1v1 / vs IA, browser-based, infiniment rejouable, compéti
 - **Caméra libre** : molette
 
 ## 6. Architecture technique
-- **Moteur** : Unreal Engine + Pixel Streaming (WebGL compatible)  
+- **Moteur** :  Pixel Streaming (WebGL compatible)  
 - **Multijoueur** : WebSockets (Node.js), serveurs dédiés  
 - **UI** : HTML5/CSS, React pour menus  
-- **Persistance** : MongoDB (profils, rangs, stats)
+- **Persistance** : Firebase (profils, rangs, stats)
 
 ## 7. Design & UX
 - HUD minimaliste (vies, munitions, radar)  
@@ -54,4 +54,4 @@ Jeu de combat spatial 1v1 / vs IA, browser-based, infiniment rejouable, compéti
 - QA & community manager
 
 ## 10. Licence
-MIT © 2025
+POMMERAUD © 2025
