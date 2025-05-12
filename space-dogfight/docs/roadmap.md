@@ -2,7 +2,7 @@
 
 ## Overview
 
-This roadmap outlines the step-by-step process for implementing the Space Dogfight browser game using Three.js and JavaScript. The game will feature physics-based spaceship combat with intuitive controls, voice-commanded assistant drones, multiple game modes, and competitive gameplay as described in the game specification.
+This roadmap outlines the step-by-step process for implementing the Space Dogfight browser game using Three.js and JavaScript. The game will feature physics-based spaceship combat with intuitive controls, an RPG-like weapon progression system, and endless replayability through procedural challenges and deep customization. The design focuses on creating an engaging roguelite experience with meaningful build variety and persistent progression.
 
 ## Phase 1: Core Spaceship Mechanics
 
@@ -56,37 +56,37 @@ This roadmap outlines the step-by-step process for implementing the Space Dogfig
 - Add visual damage states on ships
 - Create explosion effects for destruction
 
-## Phase 3: Assistant Drone System
+## Phase 3: Weapon System & Combat Tree
 
-### 3.1 Basic Drone Framework
-- Create drone entity classes for each category (attack, defense, recon)
-- Design low-poly drone models with Three.js
-- Implement drone physics and movement
-- Setup drone state machine (idle, follow, execute, return)
+### 3.1 Weapon Framework
+- Create modular weapon system architecture
+- Implement base weapon categories (ballistic, energy, explosive, special)
+- Design weapon upgrade tree structure
+- Setup weapon property system (damage, rate of fire, range, etc.)
 
-### 3.2 Voice Command Integration
-- Setup WebRTC for microphone audio capture
-- Create VoiceCommander module to process audio
-- Integrate with OpenAI Voice API for transcription
-- Develop intent mapping system for drone commands
+### 3.2 Weapon Variety Implementation
+- Create at least 4 primary weapon types
+- Implement weapon evolution/upgrade paths
+- Add special weapon effects and behaviors
+- Design weapon synergy systems
 
-### 3.3 Drone Behaviors and Actions
-- Implement attack drone combat behaviors
-- Create defense drone shield and ECM mechanics
-- Develop recon drone scanning and beacon capabilities
-- Setup drone AI decision making with priorities and cooldowns
+### 3.3 Power-up and Upgrade System
+- Implement temporary boost pickups
+- Create persistent session upgrade system
+- Develop upgrade selection UI
+- Implement weapon modification system
 
-### 3.4 Drone UI and Feedback
-- Create mini-HUD for voice transcription and intent display
-- Implement drone status icons and indicators
-- Add 3D audio feedback for command confirmation
-- Design visual effects for drone actions
+### 3.4 Visual Feedback System
+- Create distinct visual effects for different weapon types
+- Design visual indicators for weapon upgrades and evolutions
+- Implement synergy effect visualizations
+- Add damage numbers and effect indicators
 
-### 3.5 Drone Progression System
-- Implement level 1 features (single attack drone)
-- Add level 2 features (defense drone with shields)
-- Develop level 3 features (recon drone and combo commands)
-- Create drone upgrade and customization options
+### 3.5 Meta-progression System
+- Implement persistent currency system
+- Create tech tree for permanent unlocks
+- Design ship system and modification unlocks
+- Develop starting loadout selection
 
 ## Phase 4: Game Environment
 
@@ -114,58 +114,58 @@ This roadmap outlines the step-by-step process for implementing the Space Dogfig
 - Add dynamic obstacle placement
 - Balance map difficulty and playability
 
-## Phase 5: Game Modes and AI
+## Phase 5: Enemy Variety and Session Structure
 
-### 5.1 Game Mode Framework
-- Create base game mode system
-- Implement round-based timing system
-- Add scoring and statistics tracking
-- Create match start/end sequence
+### 5.1 Enemy Type Framework
+- Create base enemy ship class system
+- Implement distinct enemy categories (interceptor, destroyer, support, stealth, swarmer)
+- Design enemy attribute system (health, speed, damage, behavior type)
+- Create visual distinction between enemy types
 
-### 5.2 Specific Game Modes
-- Implement 1v1 deathmatch
-- Create free-for-all mode with multiple ships
-- Add capture zone mechanics
-- Implement survival mode against waves
+### 5.2 Enemy Behavior System
+- Implement various tactical behaviors (hunting, flanking, kiting, swarming)
+- Create behavior state machines for enemy decision making
+- Add formation-based movement patterns
+- Implement environmental awareness for enemies
 
-### 5.3 AI Opponents
-- Create basic AI state machine for enemy ships
-- Implement different difficulty levels
-- Add tactical decision making for combat
-- Create adaptive AI that learns from player behavior
+### 5.3 Wave and Progression System
+- Create wave generation algorithm
+- Implement difficulty scaling based on time
+- Design spawn patterns and enemy combinations
+- Add mini-boss and elite enemy encounters
 
-### 5.4 Tutorial System
-- Create interactive tutorial missions
-- Implement guided objectives for learning controls
-- Add contextual help system for voice commands
-- Create training scenarios for advanced techniques
+### 5.4 Session Structure
+- Implement overall session timer
+- Create wave progression indicators
+- Design area transition system
+- Add end-game boss encounter
 
-## Phase 6: UI and HUD
+## Phase 6: UI and Progression Systems
 
 ### 6.1 In-game HUD
-- Design minimalist heads-up display using HTML/CSS
-- Implement health and ammo indicators
-- Create radar/minimap system
-- Add targeting reticle and indicators
-- Integrate voice command feedback displays
+- Design heads-up display using HTML/CSS
+- Implement health, shield, and weapon indicators
+- Create wave and time indicators
+- Add build status and synergy displays
+- Design power-up and upgrade notifications
 
-### 6.2 Menus and UI
-- Create main menu interface
-- Implement ship and drone selection/customization screens
-- Add statistics and leaderboard views
-- Create settings and control configuration options
+### 6.2 Upgrade Selection UI
+- Create upgrade selection screen
+- Implement weapon evolution tree visualization
+- Design synergy indicator system
+- Add stat comparison for upgrade choices
 
-### 6.3 Match Flow UI
-- Design match briefing screens
-- Implement end-of-round results display
-- Create reward and progression indicators
-- Add quick replay and next match options
+### 6.3 Session Results UI
+- Design session summary screen
+- Implement stats tracking (damage dealt, enemies defeated, time survived)
+- Create currency and unlock indicators
+- Add progression visualization
 
-### 6.4 Feedback Systems
-- Implement visual hit indicators
-- Add audio feedback for actions and states
-- Create notification system for events
-- Add visual cues for game state changes
+### 6.4 Meta-progression UI
+- Create tech tree and unlock interface
+- Implement ship and weapon modification screens
+- Design starting loadout selection interface
+- Add achievement and challenge tracking
 
 ## Phase 7: Networking and Multiplayer
 
@@ -260,7 +260,7 @@ This roadmap outlines the step-by-step process for implementing the Space Dogfig
 - Release to limited audience
 - Collect metrics and feedback
 - Fix critical issues
-- Balance gameplay elements and voice commands
+- Balance weapon synergies and enemy difficulty
 
 ### 10.2 Full Launch
 - Marketing and promotion
@@ -270,15 +270,15 @@ This roadmap outlines the step-by-step process for implementing the Space Dogfig
 
 ### 10.3 Post-Launch Content
 - Plan seasonal content updates
-- Create new ship types and drone variants
-- Design new game modes
-- Implement special events
-- Expand voice command capabilities
+- Create new weapon branches and evolutions
+- Design new enemy types and bosses
+- Implement special events with unique rewards
+- Expand ship customization options
 
 ### 10.4 Community Building
 - Create community management plan
-- Implement in-game reporting and moderation
-- Setup tournament structure
+- Implement build sharing system
+- Setup weekly challenges with leaderboards
 - Create content creator program
 
 ## Implementation Milestones
@@ -287,14 +287,14 @@ This roadmap outlines the step-by-step process for implementing the Space Dogfig
 |-----------|-------------|-------------------|
 | **Prototype** | Basic spaceship control and physics | Week 2 |
 | **Combat Alpha** | Functional weapons and damage system | Week 4 |
-| **Drone Prototype** | Basic drone controls and voice commands | Week 6 |
+| **Weapon Framework** | Modular weapon system with upgrades | Week 6 |
 | **Environment MVP** | Space environment with obstacles | Week 8 |
-| **Full Drone System** | Complete drone categories and behaviors | Week 10 |
-| **Game Modes Beta** | Multiple playable game modes with AI | Week 12 |
-| **UI Integration** | Complete HUD and menu system | Week 14 |
-| **Multiplayer Test** | Functional multiplayer mode | Week 16 |
-| **Progression System** | Rankings and rewards implemented | Week 18 |
-| **Polished Beta** | Optimized gameplay with polish | Week 20 |
+| **Enemy Variety** | Multiple enemy types with behaviors | Week 10 |
+| **Session Structure** | Wave-based progression with timer | Week 12 |
+| **UI Integration** | HUD and upgrade selection interfaces | Week 14 |
+| **Power-up System** | In-game upgrades and synergies | Week 16 |
+| **Meta-progression** | Persistent unlocks between sessions | Week 18 |
+| **Polished Beta** | Balanced gameplay with visual polish | Week 20 |
 | **Soft Launch** | Limited audience release | Week 22 |
 | **Full Launch** | Complete game release | Week 24 |
 
@@ -302,38 +302,38 @@ This roadmap outlines the step-by-step process for implementing the Space Dogfig
 
 For immediate implementation using Three.js:
 
-1. **Project Setup**
-   - Initialize Three.js project structure
-   - Set up rendering pipeline
-   - Configure basic scene, camera, and lighting
-   - Create development server for testing
+1. **Core Weapon System Framework**
+   - Design weapon component architecture
+   - Create weapon base class with extensible properties
+   - Implement weapon attachment and firing system
+   - Setup damage calculation framework
 
-2. **Create base spaceship model**
-   - Design low-poly spaceship using Three.js geometry
-   - Add materials and textures
-   - Setup collision detection
-   - Implement basic physics properties
+2. **Initial Weapon Types**
+   - Implement basic laser weapon
+   - Create machine gun/ballistic weapon
+   - Add missile/explosive weapon
+   - Design energy beam weapon
 
-3. **Implement movement system**
-   - Configure velocity and acceleration physics
-   - Setup inertia and drift behavior
-   - Implement rotation and movement controls
-   - Add collision response
+3. **Weapon Upgrade System**
+   - Create upgrade application system
+   - Implement weapon evolution logic
+   - Design property modification system
+   - Setup synergy detection between weapons
 
-4. **Setup input controls**
-   - WASD directional control
-   - Mouse aim implementation
-   - Boost and brake functionality
-   - Camera control with mouse wheel
+4. **Enemy Type Framework**
+   - Create base enemy class
+   - Implement enemy type variation system
+   - Design spawning mechanism for different types
+   - Add basic behavioral traits for enemies
 
-5. **Create camera system**
-   - Third-person follow camera
-   - Smooth transition and lag for camera movement
-   - Configurable offsets and behavior
-   - Screen shake effects
+5. **Session Structure**
+   - Create wave generation system
+   - Implement difficulty scaling with time
+   - Add session timer and progression
+   - Design upgrade selection intervals
 
-6. **Voice command prototype**
-   - Setup basic WebRTC audio capture
-   - Create simple voice intent detection
-   - Implement basic drone command structure
-   - Test voice-to-action pipeline
+6. **UI Implementation**
+   - Implement HUD for weapon and health display
+   - Create upgrade selection screen
+   - Design build status indicators
+   - Add session progress visualization
