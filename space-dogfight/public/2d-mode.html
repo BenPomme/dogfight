@@ -1,0 +1,73 @@
+        // Create 2D arena visuals for the 2D mode
+        function createArenaVisuals() {
+    // Create 2D arena boundary circle
+    const arenaRadius = PHYSICS.arenaRadius;
+    
+    // Create arena floor (large circular plane)
+    const floorGeometry = new THREE.CircleGeometry(arenaRadius, 64);
+    const floorMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0x001030, 
+        transparent: true,
+        opacity: 0.7,
+        side: THREE.DoubleSide 
+    });
+    const arenaFloor = new THREE.Mesh(floorGeometry, floorMaterial);
+    
+    // Rotate to lie flat on XZ plane
+    arenaFloor.rotation.x = -Math.PI / 2;
+    arenaFloor.position.y = -0.1; // Slightly below the ship
+    gameState.scene.add(arenaFloor);
+    
+    // Create arena boundary (ring)
+    const boundaryGeometry = new THREE.TorusGeometry(arenaRadius, 2, 16, 100);
+    const boundaryMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0x00aaff,
+        transparent: true,
+        opacity: 0.8,
+        emissive: 0x0055aa
+    });
+    const arenaBoundary = new THREE.Mesh(boundaryGeometry, boundaryMaterial);
+    
+    // Rotate to lie flat on XZ plane
+    arenaBoundary.rotation.x = Math.PI / 2;
+    arenaBoundary.position.y = 0; // At the ship's level
+    gameState.scene.add(arenaBoundary);
+    
+    // Add light strip around boundary
+    const boundaryLight = new THREE.PointLight(0x00ccff, 1, arenaRadius * 2);
+    boundaryLight.position.set(0, 5, 0);
+    gameState.scene.add(boundaryLight);
+    
+    // Create grid pattern on floor
+    const gridHelper = new THREE.GridHelper(arenaRadius * 2, 20, 0x0033aa, 0x001133);
+    gridHelper.position.y = -0.05; // Just below the plane
+    gameState.scene.add(gridHelper);
+    
+    // Add some decorative elements (boundary poles)
+    const poleCount = 12;
+    for (let i = 0; i < poleCount; i++) {
+        const angle = (i / poleCount) * Math.PI * 2;
+        const poleGeometry = new THREE.CylinderGeometry(0.5, 0.5, 10, 8);
+        const poleMaterial = new THREE.MeshBasicMaterial({ color: 0x00aaff });
+        const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+        
+        // Position around the arena boundary
+        pole.position.x = Math.cos(angle) * arenaRadius;
+        pole.position.y = 5; // Half the height (centered vertically)
+        pole.position.z = Math.sin(angle) * arenaRadius;
+        
+        gameState.scene.add(pole);
+        
+        // Add light on top of each pole
+        const poleLight = new THREE.PointLight(0x00ccff, 0.5, 20);
+        poleLight.position.set(
+            Math.cos(angle) * arenaRadius,
+            10, // Top of pole
+            Math.sin(angle) * arenaRadius
+        );
+        gameState.scene.add(poleLight);
+    }
+    
+    // Return arena elements as a group (for potential updates)
+    return { arenaFloor, arenaBoundary, boundaryLight, gridHelper };
+}
