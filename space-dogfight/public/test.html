@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Test Page</title>
+</head>
+<body>
+  <h1>Game Test Page</h1>
+  <p>If you can see this page, the server is working properly.</p>
+  
+  <h2>JavaScript Test</h2>
+  <div id="js-test">JavaScript not working</div>
+  
+  <script>
+    // Basic JavaScript test
+    document.getElementById('js-test').textContent = 'JavaScript is working!';
+    
+    // Check if we can import Three.js
+    async function testThreeJs() {
+      try {
+        const module = await import('https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js');
+        return 'Three.js loaded successfully!';
+      } catch (error) {
+        return 'Error loading Three.js: ' + error.message;
+      }
+    }
+    
+    // Run the test and display results
+    testThreeJs().then(result => {
+      const resultElement = document.createElement('div');
+      resultElement.textContent = result;
+      document.body.appendChild(resultElement);
+    });
+  </script>
+</body>
+</html>

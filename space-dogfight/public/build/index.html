@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Space Dogfight - Wing Commander Edition</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script defer src="bundle.js"></script></head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+    <div id="loading-screen">
+      <div class="loader"></div>
+      <div class="loading-text">INITIALIZING COMBAT SYSTEMS</div>
+    </div>
+    <div id="hud" class="hidden">
+      <div class="health-bar">
+        <div class="health-label">HULL</div>
+        <div class="health-value"></div>
+      </div>
+      <div class="shield-bar">
+        <div class="shield-label">SHIELD</div>
+        <div class="shield-value"></div>
+      </div>
+      <div class="weapons">
+        <div class="weapon primary">
+          <div class="weapon-name">LASER</div>
+          <div class="weapon-ammo">∞</div>
+        </div>
+        <div class="weapon secondary">
+          <div class="weapon-name">MISSILE</div>
+          <div class="weapon-ammo">8</div>
+        </div>
+      </div>
+      <div class="radar">
+        <!-- Radar will be drawn using JavaScript -->
+      </div>
+      <div class="boost-indicator">
+        <div class="boost-label">BOOST</div>
+        <div class="boost-value"></div>
+      </div>
+
+      <!-- Alert State -->
+      <div class="alert-state normal">COMBAT READY</div>
+
+      <!-- Targeting Reticle -->
+      <div class="targeting-reticle">
+        <div class="reticle-inner"></div>
+        <div class="reticle-line horizontal"></div>
+        <div class="reticle-line vertical"></div>
+        <div class="reticle-dot"></div>
+      </div>
+
+      <!-- Drone System UI -->
+      <div id="drone-status" class="drone-panel">
+        <div class="panel-header">ASSISTANT DRONES</div>
+        <div class="panel-content">
+          <!-- Drone status will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Voice Command UI -->
+      <div id="voice-controls" class="voice-panel">
+        <button id="voice-button" title="Press V to activate voice commands"></button>
+        <div id="voice-transcription" class="voice-text">[VOICE RECOGNITION READY]</div>
+        <div id="command-feedback" class="feedback-text"></div>
+        <div class="voice-help">
+          PRESS V OR CLICK MIC TO ACTIVATE
+        </div>
+      </div>
+    </div>
+    <div id="menu" class="active">
+      <h1>SPACE DOGFIGHT</h1>
+      <div class="menu-options">
+        <button id="start-game">START MISSION</button>
+        <button id="options">FLIGHT SYSTEMS</button>
+        <button id="credits">PILOT RECORDS</button>
+      </div>
+    </div>
+  </div>
+  <!-- Scripts will be injected by webpack -->
+  <script type="module" src="build/bundle.js"></script>
+</body>
+</html>

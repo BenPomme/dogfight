@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Space Dogfight - Wing Commander Edition</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    /* Space Dogfight - Enhanced Wing Commander UI */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Orbitron', Arial, sans-serif;
+      background-color: #000;
+      color: #0cf;
+      overflow: hidden;
+    }
+    
+    /* Game Container */
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+    }
+    
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    
+    /* Loading Screen */
+    #loading-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      background-image: radial-gradient(circle at center, #061428 0%, #000000 100%);
+    }
+    
+    .loader {
+      width: 80px;
+      height: 80px;
+      border: 3px solid rgba(0, 204, 255, 0.1);
+      border-radius: 50%;
+      border-top: 3px solid #0cf;
+      border-right: 3px solid #0cf;
+      animation: spin 1s linear infinite;
+      margin-bottom: 30px;
+      box-shadow: 0 0 15px #0cf;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      font-size: 24px;
+      color: #0cf;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      text-shadow: 0 0 10px #0cf;
+      font-weight: 700;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 0.7; }
+      50% { opacity: 1; }
+      100% { opacity: 0.7; }
+    }
+    
+    /* HUD Elements */
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    /* Health and Shield Bars */
+    .health-bar, .shield-bar {
+      position: absolute;
+      left: 20px;
+      width: 250px;
+      height: 26px;
+      background-color: rgba(0, 10, 20, 0.8);
+      border: 2px solid #0cf;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+      overflow: hidden;
+      border-radius: 3px;
+    }
+    
+    .health-bar {
+      top: 20px;
+    }
+    
+    .shield-bar {
+      top: 55px;
+    }
+    
+    .health-bar::before, .shield-bar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
+      z-index: 2;
+    }
+    
+    .health-label, .shield-label {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      font-weight: bold;
+      text-shadow: 0 0 5px #0cf;
+      z-index: 2;
+    }
+    
+    .health-value, .shield-value {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(to right, #f00, #f50);
+      transform-origin: left;
+      position: relative;
+      transition: transform 0.3s ease;
+    }
+    
+    .health-value::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, 
+        rgba(255, 255, 255, 0.5), 
+        rgba(255, 255, 255, 0) 50%, 
+        rgba(0, 0, 0, 0.3));
+    }
+    
+    .shield-value {
+      background: linear-gradient(to right, #0af, #03f);
+    }
+    
+    .shield-value::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, 
+        rgba(255, 255, 255, 0.5), 
+        rgba(255, 255, 255, 0) 50%, 
+        rgba(0, 0, 0, 0.3));
+    }
+    
+    /* Weapons Display */
+    .weapons {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 180px;
+    }
+    
+    .weapon {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 15px;
+      background-color: rgba(0, 10, 20, 0.8);
+      border: 2px solid #0cf;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+      border-radius: 3px;
+    }
+    
+    .weapon-name {
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-shadow: 0 0 5px #0cf;
+    }
+    
+    .weapon-ammo {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 16px;
+      font-weight: bold;
+      color: #ff3;
+      text-shadow: 0 0 5px #ff3;
+    }
+    
+    /* Radar */
+    .radar {
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      width: 180px;
+      height: 180px;
+      background-color: rgba(0, 10, 20, 0.5);
+      border: 2px solid #0cf;
+      box-shadow: 0 0 15px rgba(0, 204, 255, 0.5), inset 0 0 30px rgba(0, 10, 20, 0.8);
+      border-radius: 50%;
+      overflow: hidden;
+    }
+    
+    .radar::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background-image: 
+        radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.5) 90%),
+        repeating-radial-gradient(circle at center, rgba(0, 204, 255, 0.1) 0%, rgba(0, 204, 255, 0.1) 2px, transparent 2px, transparent 15px);
+    }
+    
+    .radar::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 5px;
+      height: 5px;
+      background: #0cf;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #0cf;
+    }
+    
+    /* Boost Indicator */
+    .boost-indicator {
+      position: absolute;
+      left: 20px;
+      bottom: 20px;
+      width: 250px;
+      height: 26px;
+      background-color: rgba(0, 10, 20, 0.8);
+      border: 2px solid #0cf;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+      overflow: hidden;
+      border-radius: 3px;
+    }
+    
+    .boost-label {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 2;
+      text-shadow: 0 0 5px #0cf;
+    }
+    
+    .boost-value {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(to right, #ff0, #fa0);
+      transform-origin: left;
+      position: relative;
+      transition: transform 0.2s ease;
+    }
+    
+    .boost-value::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, 
+        rgba(255, 255, 255, 0.5), 
+        rgba(255, 255, 255, 0) 50%, 
+        rgba(0, 0, 0, 0.3));
+    }
+    
+    /* Drone System UI */
+    .drone-panel {
+      position: absolute;
+      right: 210px;
+      bottom: 20px;
+      width: 280px;
+      background-color: rgba(0, 10, 20, 0.8);
+      border: 2px solid #0cf;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+      pointer-events: auto;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    
+    .panel-header {
+      background: linear-gradient(to right, #0060a0, #0090c0);
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 5px #0cf;
+      border-bottom: 1px solid #0cf;
+    }
+    
+    .panel-content {
+      padding: 12px;
+    }
+    
+    .drone-status {
+      margin-bottom: 10px;
+      padding: 10px;
+      background-color: rgba(0, 20, 40, 0.7);
+      border-radius: 3px;
+      box-shadow: 0 0 10px rgba(0, 20, 40, 0.3);
+    }
+    
+    .drone-attack {
+      border-left: 4px solid #f33;
+    }
+    
+    .drone-defense {
+      border-left: 4px solid #33f;
+    }
+    
+    .drone-recon {
+      border-left: 4px solid #3f3;
+    }
+    
+    .drone-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .drone-state {
+      font-size: 12px;
+      opacity: 0.9;
+      text-transform: uppercase;
+      font-family: 'Share Tech Mono', monospace;
+      margin-bottom: 5px;
+    }
+    
+    .energy-container {
+      height: 5px;
+      background-color: rgba(0, 0, 0, 0.5);
+      margin-top: 8px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    
+    .energy-bar {
+      height: 100%;
+      background: linear-gradient(to right, #0af, #08f);
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+    
+    .drone-attack .energy-bar {
+      background: linear-gradient(to right, #f43, #f32);
+    }
+    
+    .drone-defense .energy-bar {
+      background: linear-gradient(to right, #24f, #23f);
+    }
+    
+    .drone-recon .energy-bar {
+      background: linear-gradient(to right, #3f4, #2f3);
+    }
+    
+    /* Voice Command UI */
+    .voice-panel {
+      position: absolute;
+      left: 20px;
+      bottom: 55px;
+      width: 250px;
+      background-color: rgba(0, 10, 20, 0.8);
+      border: 2px solid #0cf;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+      padding: 12px;
+      pointer-events: auto;
+      border-radius: 3px;
+    }
+    
+    #voice-button {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(to bottom, #0090c0, #0060a0);
+      border: 2px solid #0cf;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 15px;
+      transition: all 0.2s;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    }
+    
+    #voice-button::before {
+      content: "🎤";
+      font-size: 20px;
+    }
+    
+    #voice-button:hover {
+      background: linear-gradient(to bottom, #00a0d0, #0070b0);
+      transform: scale(1.05);
+    }
+    
+    #voice-button.active {
+      background: linear-gradient(to bottom, #f43, #c21);
+      animation: voice-pulse 1.5s infinite;
+    }
+    
+    @keyframes voice-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(255, 51, 51, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0); }
+    }
+    
+    .voice-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      min-height: 20px;
+      margin-bottom: 8px;
+      word-wrap: break-word;
+      color: #fff;
+      text-shadow: 0 0 5px #0cf;
+      padding: 5px;
+      background-color: rgba(0, 20, 40, 0.3);
+      border-radius: 3px;
+    }
+    
+    .feedback-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      color: #3f3;
+      min-height: 20px;
+      margin-bottom: 8px;
+      text-shadow: 0 0 5px #3f3;
+    }
+    
+    .voice-help {
+      font-size: 12px;
+      color: rgba(0, 204, 255, 0.7);
+      margin-top: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    /* Main Menu */
+    #menu {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+    }
+    
+    #menu.active {
+      display: flex;
+    }
+    
+    #menu::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.8) 70%);
+      z-index: -1;
+    }
+    
+    #menu::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        repeating-linear-gradient(to right, rgba(0, 204, 255, 0.05) 0%, rgba(0, 204, 255, 0.05) 1px, transparent 1px, transparent 30px),
+        repeating-linear-gradient(to bottom, rgba(0, 204, 255, 0.05) 0%, rgba(0, 204, 255, 0.05) 1px, transparent 1px, transparent 30px);
+      z-index: -1;
+      opacity: 0.5;
+    }
+    
+    #menu h1 {
+      font-size: 70px;
+      margin-bottom: 60px;
+      color: #0cf;
+      text-shadow: 
+        0 0 20px #0cf,
+        0 0 40px rgba(0, 204, 255, 0.5);
+      letter-spacing: 6px;
+      font-weight: 900;
+      text-transform: uppercase;
+      animation: title-glow 3s infinite ease-in-out;
+    }
+    
+    @keyframes title-glow {
+      0% { text-shadow: 0 0 20px #0cf, 0 0 40px rgba(0, 204, 255, 0.5); }
+      50% { text-shadow: 0 0 25px #0cf, 0 0 50px rgba(0, 204, 255, 0.8); }
+      100% { text-shadow: 0 0 20px #0cf, 0 0 40px rgba(0, 204, 255, 0.5); }
+    }
+    
+    .menu-options {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+    
+    .menu-options button {
+      width: 300px;
+      padding: 15px;
+      background: linear-gradient(to right, rgba(0, 30, 60, 0.8), rgba(0, 60, 90, 0.8));
+      border: 2px solid #0cf;
+      color: #0cf;
+      font-size: 18px;
+      letter-spacing: 3px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      font-family: 'Orbitron', sans-serif;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 15px rgba(0, 204, 255, 0.3);
+      font-weight: bold;
+    }
+    
+    .menu-options button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to right, transparent, rgba(0, 204, 255, 0.2), transparent);
+      transition: all 0.4s ease;
+    }
+    
+    .menu-options button:hover {
+      background: linear-gradient(to right, rgba(0, 40, 80, 0.8), rgba(0, 80, 120, 0.8));
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(0, 204, 255, 0.5);
+    }
+    
+    .menu-options button:hover::before {
+      left: 100%;
+    }
+    
+    /* HUD Scanner Effect */
+    #hud::before {
+      content: '';
+      position: absolute;
+      top: -100%;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(to bottom, 
+        transparent, 
+        rgba(0, 204, 255, 0.5), 
+        transparent);
+      animation: scan-line 8s linear infinite;
+      pointer-events: none;
+      z-index: 30;
+      opacity: 0.7;
+    }
+    
+    @keyframes scan-line {
+      0% { top: -5px; }
+      100% { top: 100%; }
+    }
+    
+    /* Targeting Reticle */
+    .targeting-reticle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100px;
+      height: 100px;
+      pointer-events: none;
+      z-index: 20;
+      opacity: 0.8;
+    }
+    
+    .reticle-inner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border: 2px solid #0cf;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    }
+    
+    .reticle-line {
+      position: absolute;
+      background-color: #0cf;
+      box-shadow: 0 0 5px rgba(0, 204, 255, 0.5);
+    }
+    
+    .reticle-line.horizontal {
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      transform: translateY(-50%);
+    }
+    
+    .reticle-line.vertical {
+      top: 0;
+      left: 50%;
+      width: 1px;
+      height: 100%;
+      transform: translateX(-50%);
+    }
+    
+    .reticle-dot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 4px;
+      height: 4px;
+      background-color: #0cf;
+      border-radius: 50%;
+      box-shadow: 0 0 5px rgba(0, 204, 255, 0.8);
+    }
+    
+    /* Alert State Indicator */
+    .alert-state {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 5px 15px;
+      background-color: rgba(0, 10, 20, 0.8);
+      border: 2px solid #0cf;
+      font-size: 16px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      z-index: 15;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    }
+    
+    .alert-state.normal {
+      border-color: #0cf;
+      color: #0cf;
+    }
+    
+    .alert-state.caution {
+      border-color: #ff0;
+      color: #ff0;
+      box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+    }
+    
+    .alert-state.danger {
+      border-color: #f33;
+      color: #f33;
+      box-shadow: 0 0 10px rgba(255, 51, 51, 0.5);
+      animation: alert-pulse 1s infinite;
+    }
+    
+    @keyframes alert-pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.8; }
+      100% { opacity: 1; }
+    }
+    
+    #starfield {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+    
+    /* Spaceship model */
+    #spaceship-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transform-style: preserve-3d;
+      perspective: 1000px;
+      z-index: 1;
+    }
+    
+    .spaceship {
+      width: 0;
+      height: 0;
+      transform-style: preserve-3d;
+      animation: ship-hover 3s ease-in-out infinite;
+    }
+    
+    @keyframes ship-hover {
+      0% { transform: translateY(0) rotateX(-10deg); }
+      50% { transform: translateY(10px) rotateX(-5deg); }
+      100% { transform: translateY(0) rotateX(-10deg); }
+    }
+    
+    .spaceship-body {
+      position: absolute;
+      width: 120px;
+      height: 30px;
+      background: linear-gradient(to bottom, #334, #112);
+      border: 1px solid #0cf;
+      transform: translateX(-50%) translateY(-50%) rotateX(90deg);
+      border-radius: 60% 60% 30% 30%;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    }
+    
+    .spaceship-wing {
+      position: absolute;
+      width: 160px;
+      height: 20px;
+      background: linear-gradient(to bottom, #223, #001);
+      border: 1px solid #0cf;
+      transform: translateX(-50%) translateY(-50%) translateZ(-10px) rotateX(80deg);
+      border-radius: 30% 30% 0 0;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    }
+    
+    .spaceship-engine {
+      position: absolute;
+      width: 10px;
+      height: 20px;
+      background: #001;
+      border: 1px solid #0cf;
+      transform: translateX(-50%) translateY(-50%) translateZ(-20px) rotateX(90deg);
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    }
+    
+    .spaceship-engine1 {
+      left: -20px;
+    }
+    
+    .spaceship-engine2 {
+      left: 20px;
+    }
+    
+    .engine-glow {
+      position: absolute;
+      width: 6px;
+      height: 20px;
+      background: linear-gradient(to bottom, #f50, #00f);
+      transform: translateX(-50%) translateY(-50%) translateZ(-25px) rotateX(90deg);
+      border-radius: 50%;
+      filter: blur(2px);
+      opacity: 0.8;
+      animation: engine-pulse 1s ease-in-out infinite;
+    }
+    
+    @keyframes engine-pulse {
+      0% { opacity: 0.5; height: 15px; }
+      50% { opacity: 0.8; height: 20px; }
+      100% { opacity: 0.5; height: 15px; }
+    }
+    
+    .explosion {
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ff0, #f50, #f00, transparent);
+      opacity: 0;
+      z-index: 15;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    
+    .explosion.active {
+      animation: explode 1.5s ease-out forwards;
+    }
+    
+    @keyframes explode {
+      0% { 
+        width: 10px; 
+        height: 10px; 
+        opacity: 1; 
+      }
+      100% { 
+        width: 300px; 
+        height: 300px; 
+        opacity: 0; 
+      }
+    }
+
+    /* Planets */
+    .planet {
+      position: absolute;
+      border-radius: 50%;
+      box-shadow: inset -20px -20px 50px rgba(0,0,0,0.5);
+    }
+
+    .planet1 {
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle at 30% 30%, #338, #114);
+      left: 75%;
+      top: 30%;
+      box-shadow: inset -30px -30px 100px rgba(0,0,0,0.7), 0 0 20px rgba(30, 100, 255, 0.4);
+    }
+
+    .planet2 {
+      width: 80px;
+      height: 80px;
+      background: radial-gradient(circle at 30% 30%, #a63, #521);
+      left: 15%;
+      top: 70%;
+      box-shadow: inset -15px -15px 40px rgba(0,0,0,0.7), 0 0 10px rgba(255, 100, 50, 0.4);
+    }
+
+    /* Asteroid field */
+    .asteroid {
+      position: absolute;
+      background-color: #444;
+      border-radius: 50%;
+      box-shadow: inset -5px -5px 10px rgba(0,0,0,0.7);
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="starfield"></canvas>
+    
+    <!-- Planets -->
+    <div class="planet planet1"></div>
+    <div class="planet planet2"></div>
+    
+    <!-- Asteroids will be added with JavaScript -->
+    
+    <!-- Simple spaceship model -->
+    <div id="spaceship-container">
+      <div class="spaceship">
+        <div class="spaceship-body"></div>
+        <div class="spaceship-wing"></div>
+        <div class="spaceship-engine spaceship-engine1"></div>
+        <div class="spaceship-engine spaceship-engine2"></div>
+        <div class="engine-glow spaceship-engine1"></div>
+        <div class="engine-glow spaceship-engine2"></div>
+      </div>
+    </div>
+    
+    <div id="loading-screen">
+      <div class="loader"></div>
+      <div class="loading-text">INITIALIZING COMBAT SYSTEMS</div>
+    </div>
+    
+    <div id="hud" class="hidden">
+      <div class="health-bar">
+        <div class="health-label">HULL</div>
+        <div class="health-value" style="transform: scaleX(0.85);"></div>
+      </div>
+      <div class="shield-bar">
+        <div class="shield-label">SHIELD</div>
+        <div class="shield-value" style="transform: scaleX(0.7);"></div>
+      </div>
+      <div class="weapons">
+        <div class="weapon primary">
+          <div class="weapon-name">LASER</div>
+          <div class="weapon-ammo">∞</div>
+        </div>
+        <div class="weapon secondary">
+          <div class="weapon-name">MISSILE</div>
+          <div class="weapon-ammo">8</div>
+        </div>
+      </div>
+      <div class="radar">
+        <!-- Radar will be drawn with JavaScript -->
+      </div>
+      <div class="boost-indicator">
+        <div class="boost-label">BOOST</div>
+        <div class="boost-value" style="transform: scaleX(0.6);"></div>
+      </div>
+
+      <!-- Alert State -->
+      <div class="alert-state normal">COMBAT READY</div>
+
+      <!-- Targeting Reticle -->
+      <div class="targeting-reticle">
+        <div class="reticle-inner"></div>
+        <div class="reticle-line horizontal"></div>
+        <div class="reticle-line vertical"></div>
+        <div class="reticle-dot"></div>
+      </div>
+
+      <!-- Drone System UI -->
+      <div id="drone-status" class="drone-panel">
+        <div class="panel-header">ASSISTANT DRONES</div>
+        <div class="panel-content">
+          <div class="drone-status drone-attack">
+            <div class="drone-name">ATTACK LV1</div>
+            <div class="drone-state">IDLE</div>
+            <div class="energy-container">
+              <div class="energy-bar" style="width: 90%;"></div>
+            </div>
+          </div>
+          <div class="drone-status drone-defense">
+            <div class="drone-name">DEFENSE LV1</div>
+            <div class="drone-state">ACTIVE</div>
+            <div class="energy-container">
+              <div class="energy-bar" style="width: 70%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Voice Command UI -->
+      <div id="voice-controls" class="voice-panel">
+        <button id="voice-button" title="Press V to activate voice commands"></button>
+        <div id="voice-transcription" class="voice-text">[VOICE RECOGNITION READY]</div>
+        <div id="command-feedback" class="feedback-text"></div>
+        <div class="voice-help">
+          PRESS V OR CLICK MIC TO ACTIVATE
+        </div>
+      </div>
+    </div>
+    
+    <div id="menu" class="active">
+      <h1>SPACE DOGFIGHT</h1>
+      <div class="menu-options">
+        <button id="start-game">START MISSION</button>
+        <button id="options">FLIGHT SYSTEMS</button>
+        <button id="credits">PILOT RECORDS</button>
+      </div>
+    </div>
+    
+    <div class="explosion" id="explosion"></div>
+  </div>
+
+  <script>
+    // Simple demo of the Wing Commander UI
+    document.addEventListener('DOMContentLoaded', () => {
+      // Get elements
+      const loadingScreen = document.getElementById('loading-screen');
+      const menu = document.getElementById('menu');
+      const hud = document.getElementById('hud');
+      const startButton = document.getElementById('start-game');
+      const voiceButton = document.getElementById('voice-button');
+      const transcriptionElement = document.getElementById('voice-transcription');
+      const feedbackElement = document.getElementById('command-feedback');
+      const alertState = document.querySelector('.alert-state');
+      const explosion = document.getElementById('explosion');
+      
+      // Generate random asteroids
+      generateAsteroids(30);
+      
+      // Initialize starfield
+      initStarfield();
+      
+      // Simulate loading and then show menu
+      setTimeout(() => {
+        loadingScreen.style.display = 'none';
+      }, 3000);
+      
+      // Handle start game button
+      startButton.addEventListener('click', () => {
+        menu.classList.remove('active');
+        hud.classList.remove('hidden');
+        
+        // Simulate combat alert after a delay
+        setTimeout(() => {
+          simulateCombatAlert();
+        }, 5000);
+        
+        // Simulate explosion after a delay
+        setTimeout(() => {
+          triggerExplosion();
+        }, 8000);
+      });
+      
+      // Handle voice button
+      voiceButton.addEventListener('click', () => {
+        toggleVoiceListening();
+      });
+      
+      // Handle keyboard shortcuts
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'v' || event.key === 'V') {
+          toggleVoiceListening();
+        }
+        if (event.key === 'Escape') {
+          menu.classList.toggle('active');
+        }
+      });
+      
+      // Voice listening toggle function
+      function toggleVoiceListening() {
+        voiceButton.classList.toggle('active');
+        
+        if (voiceButton.classList.contains('active')) {
+          transcriptionElement.textContent = 'Listening...';
+          
+          // Simulate voice command after a short delay
+          setTimeout(() => {
+            simulateVoiceCommand();
+          }, 2000);
+        } else {
+          transcriptionElement.textContent = '[VOICE RECOGNITION READY]';
+          feedbackElement.textContent = '';
+        }
+      }
+      
+      // Simulate voice command
+      function simulateVoiceCommand() {
+        const commands = [
+          { text: 'Drone, attack target', feedback: 'Command: ATTACK DRONE ENGAGING' },
+          { text: 'Activate shield', feedback: 'Command: DEFENSE SHIELD ACTIVATED' },
+          { text: 'Scan area', feedback: 'Command: AREA SCAN INITIATED' },
+          { text: 'All drones, attack', feedback: 'Command: ALL DRONES ENGAGING' }
+        ];
+        
+        const randomCommand = commands[Math.floor(Math.random() * commands.length)];
+        
+        transcriptionElement.textContent = randomCommand.text;
+        feedbackElement.textContent = randomCommand.feedback;
+        
+        // Turn off voice listening after command
+        setTimeout(() => {
+          voiceButton.classList.remove('active');
+        }, 1000);
+      }
+      
+      // Simulate combat alert
+      function simulateCombatAlert() {
+        alertState.classList.remove('normal');
+        alertState.classList.add('caution');
+        alertState.textContent = 'HOSTILES DETECTED';
+        
+        // Escalate to danger after a delay
+        setTimeout(() => {
+          alertState.classList.remove('caution');
+          alertState.classList.add('danger');
+          alertState.textContent = 'UNDER ATTACK';
+        }, 3000);
+      }
+      
+      // Trigger explosion effect
+      function triggerExplosion() {
+        // Random position within view
+        const x = 30 + Math.random() * 40; // 30-70% across screen
+        const y = 30 + Math.random() * 40; // 30-70% down screen
+        
+        explosion.style.left = `${x}%`;
+        explosion.style.top = `${y}%`;
+        explosion.classList.add('active');
+        
+        // Reset explosion after animation
+        setTimeout(() => {
+          explosion.classList.remove('active');
+        }, 1500);
+      }
+      
+      // Generate asteroids
+      function generateAsteroids(count) {
+        const container = document.getElementById('game-container');
+        
+        for (let i = 0; i < count; i++) {
+          const asteroid = document.createElement('div');
+          asteroid.className = 'asteroid';
+          
+          // Random size
+          const size = 5 + Math.random() * 20;
+          asteroid.style.width = `${size}px`;
+          asteroid.style.height = `${size}px`;
+          
+          // Random position
+          asteroid.style.left = `${Math.random() * 100}%`;
+          asteroid.style.top = `${Math.random() * 100}%`;
+          
+          // Random z-index for depth
+          asteroid.style.zIndex = Math.floor(Math.random() * 5);
+          
+          container.appendChild(asteroid);
+        }
+      }
+      
+      // Initialize starfield
+      function initStarfield() {
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Star properties
+        const stars = [];
+        const starCount = 200;
+        
+        // Create stars
+        for (let i = 0; i < starCount; i++) {
+          stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2,
+            speed: 0.1 + Math.random() * 0.3
+          });
+        }
+        
+        // Animation function
+        function animate() {
+          // Clear canvas
+          ctx.fillStyle = '#000';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw stars
+          ctx.fillStyle = '#fff';
+          for (let i = 0; i < starCount; i++) {
+            const star = stars[i];
+            
+            // Draw star
+            ctx.fillRect(star.x, star.y, star.size, star.size);
+            
+            // Move star
+            star.y += star.speed;
+            
+            // Reset if off screen
+            if (star.y > canvas.height) {
+              star.y = 0;
+              star.x = Math.random() * canvas.width;
+            }
+          }
+          
+          // Continue animation
+          requestAnimationFrame(animate);
+        }
+        
+        // Start animation
+        animate();
+      }
+    });
+  </script>
+</body>
+</html>

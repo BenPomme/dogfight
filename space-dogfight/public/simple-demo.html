@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Space Dogfight - Simple Demo</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+    <div id="loading-screen">
+      <div class="loader"></div>
+      <div class="loading-text">Loading Space Dogfight...</div>
+    </div>
+    <div id="hud" class="hidden">
+      <div class="health-bar">
+        <div class="health-label">HULL</div>
+        <div class="health-value" style="transform: scaleX(1);"></div>
+      </div>
+      <div class="shield-bar">
+        <div class="shield-label">SHIELD</div>
+        <div class="shield-value" style="transform: scaleX(1);"></div>
+      </div>
+      <div class="weapons">
+        <div class="weapon primary">
+          <div class="weapon-name">LASER</div>
+          <div class="weapon-ammo">∞</div>
+        </div>
+        <div class="weapon secondary">
+          <div class="weapon-name">MISSILE</div>
+          <div class="weapon-ammo">8</div>
+        </div>
+      </div>
+      <div class="radar">
+        <!-- Radar will be drawn using JavaScript -->
+      </div>
+      <div class="boost-indicator">
+        <div class="boost-label">BOOST</div>
+        <div class="boost-value" style="transform: scaleX(1);"></div>
+      </div>
+    </div>
+    <div id="menu" class="active">
+      <h1>SPACE DOGFIGHT</h1>
+      <div class="menu-options">
+        <button id="start-game">START GAME</button>
+        <button id="options">OPTIONS</button>
+        <button id="credits">CREDITS</button>
+      </div>
+    </div>
+  </div>
+  <!-- Import simple game demo -->
+  <script type="module" src="build/simple-game.js"></script>
+  <script>
+    // Add event listener for start game button
+    document.getElementById('start-game').addEventListener('click', function() {
+      const menu = document.getElementById('menu');
+      const hud = document.getElementById('hud');
+      
+      menu.classList.remove('active');
+      hud.classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,2123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Space Dogfight - Wing Commander Edition</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    /* Space Dogfight - Enhanced Wing Commander UI */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Orbitron', Arial, sans-serif;
+      background-color: #000;
+      color: #0cf;
+      overflow: hidden;
+    }
+    
+    /* Game Container */
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+    }
+    
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    
+    /* Loading Screen */
+    #loading-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      background-image: radial-gradient(circle at center, #061428 0%, #000000 100%);
+    }
+    
+    .loader {
+      width: 80px;
+      height: 80px;
+      border: 3px solid rgba(0, 204, 255, 0.1);
+      border-radius: 50%;
+      border-top: 3px solid #0cf;
+      border-right: 3px solid #0cf;
+      animation: spin 1s linear infinite;
+      margin-bottom: 30px;
+      box-shadow: 0 0 15px #0cf;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      font-size: 24px;
+      color: #0cf;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      text-shadow: 0 0 10px #0cf;
+      font-weight: 700;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 0.7; }
+      50% { opacity: 1; }
+      100% { opacity: 0.7; }
+    }
+    
+    /* HUD Elements */
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    /* Health and Shield Bars */
+    .health-bar, .shield-bar {
+      position: absolute;
+      left: 20px;
+      width: 250px;
+      height: 26px;
+      background-color: rgba(0, 10, 20, 0.8);
+      border: 2px solid #0cf;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+      overflow: hidden;
+      border-radius: 3px;
+    }
+    
+    .health-bar {
+      top: 20px;
+    }
+    
+    .shield-bar {
+      top: 55px;
+    }
+    
+    .health-bar::before, .shield-bar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
+      z-index: 2;
+    }
+    
+    .health-label, .shield-label {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      font-weight: bold;
+      text-shadow: 0 0 5px #0cf;
+      z-index: 2;
+    }
+    
+    .health-value, .shield-value {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(to right, #f00, #f50);
+      transform-origin: left;
+      position: relative;
+      transition: transform 0.3s ease;
+    }
+    
+    .health-value::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, 
+        rgba(255, 255, 255, 0.5), 
+        rgba(255, 255, 255, 0) 50%, 
+        rgba(0, 0, 0, 0.3));
+    }
+    
+    .shield-value {
+      background: linear-gradient(to right, #0af, #03f);
+    }
+    
+    .shield-value::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, 
+        rgba(255, 255, 255, 0.5), 
+        rgba(255, 255, 255, 0) 50%, 
+        rgba(0, 0, 0, 0.3));
+    }
+    
+    /* Weapons Display */
+    .weapons {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 180px;
+    }
+    
+    .weapon {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 15px;
+      background-color: rgba(0, 10, 20, 0.8);
+      border: 2px solid #0cf;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+      border-radius: 3px;
+    }
+    
+    .weapon-name {
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-shadow: 0 0 5px #0cf;
+    }
+    
+    .weapon-ammo {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 16px;
+      font-weight: bold;
+      color: #ff3;
+      text-shadow: 0 0 5px #ff3;
+    }
+    
+    /* Radar */
+    .radar {
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      width: 180px;
+      height: 180px;
+      background-color: rgba(0, 10, 20, 0.5);
+      border: 2px solid #0cf;
+      box-shadow: 0 0 15px rgba(0, 204, 255, 0.5), inset 0 0 30px rgba(0, 10, 20, 0.8);
+      border-radius: 50%;
+      overflow: hidden;
+    }
+    
+    .radar::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background-image: 
+        radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.5) 90%),
+        repeating-radial-gradient(circle at center, rgba(0, 204, 255, 0.1) 0%, rgba(0, 204, 255, 0.1) 2px, transparent 2px, transparent 15px);
+    }
+    
+    .radar::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 5px;
+      height: 5px;
+      background: #0cf;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #0cf;
+    }
+    
+    /* Boost Indicator */
+    .boost-indicator {
+      position: absolute;
+      left: 20px;
+      bottom: 20px;
+      width: 250px;
+      height: 26px;
+      background-color: rgba(0, 10, 20, 0.8);
+      border: 2px solid #0cf;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+      overflow: hidden;
+      border-radius: 3px;
+    }
+    
+    .boost-label {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 2;
+      text-shadow: 0 0 5px #0cf;
+    }
+    
+    .boost-value {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(to right, #ff0, #fa0);
+      transform-origin: left;
+      position: relative;
+      transition: transform 0.2s ease;
+    }
+    
+    .boost-value::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, 
+        rgba(255, 255, 255, 0.5), 
+        rgba(255, 255, 255, 0) 50%, 
+        rgba(0, 0, 0, 0.3));
+    }
+    
+    /* Drone System UI */
+    .drone-panel {
+      position: absolute;
+      right: 210px;
+      bottom: 20px;
+      width: 280px;
+      background-color: rgba(0, 10, 20, 0.8);
+      border: 2px solid #0cf;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+      pointer-events: auto;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    
+    .panel-header {
+      background: linear-gradient(to right, #0060a0, #0090c0);
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 5px #0cf;
+      border-bottom: 1px solid #0cf;
+    }
+    
+    .panel-content {
+      padding: 12px;
+    }
+    
+    .drone-status {
+      margin-bottom: 10px;
+      padding: 10px;
+      background-color: rgba(0, 20, 40, 0.7);
+      border-radius: 3px;
+      box-shadow: 0 0 10px rgba(0, 20, 40, 0.3);
+    }
+    
+    .drone-attack {
+      border-left: 4px solid #f33;
+    }
+    
+    .drone-defense {
+      border-left: 4px solid #33f;
+    }
+    
+    .drone-recon {
+      border-left: 4px solid #3f3;
+    }
+    
+    .drone-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .drone-state {
+      font-size: 12px;
+      opacity: 0.9;
+      text-transform: uppercase;
+      font-family: 'Share Tech Mono', monospace;
+      margin-bottom: 5px;
+    }
+    
+    .energy-container {
+      height: 5px;
+      background-color: rgba(0, 0, 0, 0.5);
+      margin-top: 8px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    
+    .energy-bar {
+      height: 100%;
+      background: linear-gradient(to right, #0af, #08f);
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+    
+    .drone-attack .energy-bar {
+      background: linear-gradient(to right, #f43, #f32);
+    }
+    
+    .drone-defense .energy-bar {
+      background: linear-gradient(to right, #24f, #23f);
+    }
+    
+    .drone-recon .energy-bar {
+      background: linear-gradient(to right, #3f4, #2f3);
+    }
+    
+    /* Voice Command UI */
+    .voice-panel {
+      position: absolute;
+      left: 20px;
+      bottom: 55px;
+      width: 250px;
+      background-color: rgba(0, 10, 20, 0.8);
+      border: 2px solid #0cf;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+      padding: 12px;
+      pointer-events: auto;
+      border-radius: 3px;
+    }
+    
+    #voice-button {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(to bottom, #0090c0, #0060a0);
+      border: 2px solid #0cf;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 15px;
+      transition: all 0.2s;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    }
+    
+    #voice-button::before {
+      content: "🎤";
+      font-size: 20px;
+    }
+    
+    #voice-button:hover {
+      background: linear-gradient(to bottom, #00a0d0, #0070b0);
+      transform: scale(1.05);
+    }
+    
+    #voice-button.active {
+      background: linear-gradient(to bottom, #f43, #c21);
+      animation: voice-pulse 1.5s infinite;
+    }
+    
+    @keyframes voice-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(255, 51, 51, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0); }
+    }
+    
+    .voice-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      min-height: 20px;
+      margin-bottom: 8px;
+      word-wrap: break-word;
+      color: #fff;
+      text-shadow: 0 0 5px #0cf;
+      padding: 5px;
+      background-color: rgba(0, 20, 40, 0.3);
+      border-radius: 3px;
+    }
+    
+    .feedback-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      color: #3f3;
+      min-height: 20px;
+      margin-bottom: 8px;
+      text-shadow: 0 0 5px #3f3;
+    }
+    
+    .voice-help {
+      font-size: 12px;
+      color: rgba(0, 204, 255, 0.7);
+      margin-top: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    /* Main Menu */
+    #menu {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+    }
+    
+    #menu.active {
+      display: flex;
+    }
+    
+    #menu::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.8) 70%);
+      z-index: -1;
+    }
+    
+    #menu::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        repeating-linear-gradient(to right, rgba(0, 204, 255, 0.05) 0%, rgba(0, 204, 255, 0.05) 1px, transparent 1px, transparent 30px),
+        repeating-linear-gradient(to bottom, rgba(0, 204, 255, 0.05) 0%, rgba(0, 204, 255, 0.05) 1px, transparent 1px, transparent 30px);
+      z-index: -1;
+      opacity: 0.5;
+    }
+    
+    #menu h1 {
+      font-size: 70px;
+      margin-bottom: 60px;
+      color: #0cf;
+      text-shadow: 
+        0 0 20px #0cf,
+        0 0 40px rgba(0, 204, 255, 0.5);
+      letter-spacing: 6px;
+      font-weight: 900;
+      text-transform: uppercase;
+      animation: title-glow 3s infinite ease-in-out;
+    }
+    
+    @keyframes title-glow {
+      0% { text-shadow: 0 0 20px #0cf, 0 0 40px rgba(0, 204, 255, 0.5); }
+      50% { text-shadow: 0 0 25px #0cf, 0 0 50px rgba(0, 204, 255, 0.8); }
+      100% { text-shadow: 0 0 20px #0cf, 0 0 40px rgba(0, 204, 255, 0.5); }
+    }
+    
+    .menu-options {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+    
+    .menu-options button {
+      width: 300px;
+      padding: 15px;
+      background: linear-gradient(to right, rgba(0, 30, 60, 0.8), rgba(0, 60, 90, 0.8));
+      border: 2px solid #0cf;
+      color: #0cf;
+      font-size: 18px;
+      letter-spacing: 3px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      font-family: 'Orbitron', sans-serif;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 15px rgba(0, 204, 255, 0.3);
+      font-weight: bold;
+    }
+    
+    .menu-options button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to right, transparent, rgba(0, 204, 255, 0.2), transparent);
+      transition: all 0.4s ease;
+    }
+    
+    .menu-options button:hover {
+      background: linear-gradient(to right, rgba(0, 40, 80, 0.8), rgba(0, 80, 120, 0.8));
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(0, 204, 255, 0.5);
+    }
+    
+    .menu-options button:hover::before {
+      left: 100%;
+    }
+    
+    /* HUD Scanner Effect */
+    #hud::before {
+      content: '';
+      position: absolute;
+      top: -100%;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(to bottom, 
+        transparent, 
+        rgba(0, 204, 255, 0.5), 
+        transparent);
+      animation: scan-line 8s linear infinite;
+      pointer-events: none;
+      z-index: 30;
+      opacity: 0.7;
+    }
+    
+    @keyframes scan-line {
+      0% { top: -5px; }
+      100% { top: 100%; }
+    }
+    
+    /* Targeting Reticle */
+    .targeting-reticle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100px;
+      height: 100px;
+      pointer-events: none;
+      z-index: 20;
+      opacity: 0.8;
+    }
+    
+    .reticle-inner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border: 2px solid #0cf;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    }
+    
+    .reticle-line {
+      position: absolute;
+      background-color: #0cf;
+      box-shadow: 0 0 5px rgba(0, 204, 255, 0.5);
+    }
+    
+    .reticle-line.horizontal {
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      transform: translateY(-50%);
+    }
+    
+    .reticle-line.vertical {
+      top: 0;
+      left: 50%;
+      width: 1px;
+      height: 100%;
+      transform: translateX(-50%);
+    }
+    
+    .reticle-dot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 4px;
+      height: 4px;
+      background-color: #0cf;
+      border-radius: 50%;
+      box-shadow: 0 0 5px rgba(0, 204, 255, 0.8);
+    }
+    
+    /* Alert State Indicator */
+    .alert-state {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 5px 15px;
+      background-color: rgba(0, 10, 20, 0.8);
+      border: 2px solid #0cf;
+      font-size: 16px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      z-index: 15;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    }
+    
+    .alert-state.normal {
+      border-color: #0cf;
+      color: #0cf;
+    }
+    
+    .alert-state.caution {
+      border-color: #ff0;
+      color: #ff0;
+      box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+    }
+    
+    .alert-state.danger {
+      border-color: #f33;
+      color: #f33;
+      box-shadow: 0 0 10px rgba(255, 51, 51, 0.5);
+      animation: alert-pulse 1s infinite;
+    }
+    
+    @keyframes alert-pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.8; }
+      100% { opacity: 1; }
+    }
+    
+    #starfield {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+    
+    /* Spaceship model */
+    #spaceship-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transform-style: preserve-3d;
+      perspective: 1000px;
+      z-index: 1;
+    }
+    
+    .spaceship {
+      width: 0;
+      height: 0;
+      transform-style: preserve-3d;
+      animation: ship-hover 3s ease-in-out infinite;
+    }
+    
+    @keyframes ship-hover {
+      0% { transform: translateY(0) rotateX(-10deg); }
+      50% { transform: translateY(10px) rotateX(-5deg); }
+      100% { transform: translateY(0) rotateX(-10deg); }
+    }
+    
+    .spaceship-body {
+      position: absolute;
+      width: 120px;
+      height: 30px;
+      background: linear-gradient(to bottom, #334, #112);
+      border: 1px solid #0cf;
+      transform: translateX(-50%) translateY(-50%) rotateX(90deg);
+      border-radius: 60% 60% 30% 30%;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    }
+    
+    .spaceship-wing {
+      position: absolute;
+      width: 160px;
+      height: 20px;
+      background: linear-gradient(to bottom, #223, #001);
+      border: 1px solid #0cf;
+      transform: translateX(-50%) translateY(-50%) translateZ(-10px) rotateX(80deg);
+      border-radius: 30% 30% 0 0;
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    }
+    
+    .spaceship-engine {
+      position: absolute;
+      width: 10px;
+      height: 20px;
+      background: #001;
+      border: 1px solid #0cf;
+      transform: translateX(-50%) translateY(-50%) translateZ(-20px) rotateX(90deg);
+      box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    }
+    
+    .spaceship-engine1 {
+      left: -20px;
+    }
+    
+    .spaceship-engine2 {
+      left: 20px;
+    }
+    
+    .engine-glow {
+      position: absolute;
+      width: 6px;
+      height: 20px;
+      background: linear-gradient(to bottom, #f50, #00f);
+      transform: translateX(-50%) translateY(-50%) translateZ(-25px) rotateX(90deg);
+      border-radius: 50%;
+      filter: blur(2px);
+      opacity: 0.8;
+      animation: engine-pulse 1s ease-in-out infinite;
+    }
+    
+    @keyframes engine-pulse {
+      0% { opacity: 0.5; height: 15px; }
+      50% { opacity: 0.8; height: 20px; }
+      100% { opacity: 0.5; height: 15px; }
+    }
+    
+    .explosion {
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ff0, #f50, #f00, transparent);
+      opacity: 0;
+      z-index: 15;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    
+    .explosion.active {
+      animation: explode 1.5s ease-out forwards;
+    }
+    
+    @keyframes explode {
+      0% { 
+        width: 10px; 
+        height: 10px; 
+        opacity: 1; 
+      }
+      100% { 
+        width: 300px; 
+        height: 300px; 
+        opacity: 0; 
+      }
+    }
+
+    /* Planets */
+    .planet {
+      position: absolute;
+      border-radius: 50%;
+      box-shadow: inset -20px -20px 50px rgba(0,0,0,0.5);
+    }
+
+    .planet1 {
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle at 30% 30%, #338, #114);
+      left: 75%;
+      top: 30%;
+      box-shadow: inset -30px -30px 100px rgba(0,0,0,0.7), 0 0 20px rgba(30, 100, 255, 0.4);
+    }
+
+    .planet2 {
+      width: 80px;
+      height: 80px;
+      background: radial-gradient(circle at 30% 30%, #a63, #521);
+      left: 15%;
+      top: 70%;
+      box-shadow: inset -15px -15px 40px rgba(0,0,0,0.7), 0 0 10px rgba(255, 100, 50, 0.4);
+    }
+
+    /* Asteroid field */
+    .asteroid {
+      position: absolute;
+      background-color: #444;
+      border-radius: 50%;
+      box-shadow: inset -5px -5px 10px rgba(0,0,0,0.7);
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="starfield"></canvas>
+    
+    <!-- Planets -->
+    <div class="planet planet1"></div>
+    <div class="planet planet2"></div>
+    
+    <!-- Asteroids will be added with JavaScript -->
+    
+    <!-- Simple spaceship model -->
+    <div id="spaceship-container">
+      <div class="spaceship">
+        <div class="spaceship-body"></div>
+        <div class="spaceship-wing"></div>
+        <div class="spaceship-engine spaceship-engine1"></div>
+        <div class="spaceship-engine spaceship-engine2"></div>
+        <div class="engine-glow spaceship-engine1"></div>
+        <div class="engine-glow spaceship-engine2"></div>
+      </div>
+    </div>
+    
+    <div id="loading-screen">
+      <div class="loader"></div>
+      <div class="loading-text">INITIALIZING COMBAT SYSTEMS</div>
+    </div>
+    
+    <div id="hud" class="hidden">
+      <div class="health-bar">
+        <div class="health-label">HULL</div>
+        <div class="health-value" style="transform: scaleX(0.85);"></div>
+      </div>
+      <div class="shield-bar">
+        <div class="shield-label">SHIELD</div>
+        <div class="shield-value" style="transform: scaleX(0.7);"></div>
+      </div>
+      <div class="weapons">
+        <div class="weapon primary">
+          <div class="weapon-name">LASER</div>
+          <div class="weapon-ammo">∞</div>
+        </div>
+        <div class="weapon secondary">
+          <div class="weapon-name">MISSILE</div>
+          <div class="weapon-ammo">8</div>
+        </div>
+      </div>
+      <div class="radar">
+        <!-- Radar will be drawn with JavaScript -->
+      </div>
+      <div class="boost-indicator">
+        <div class="boost-label">BOOST</div>
+        <div class="boost-value" style="transform: scaleX(0.6);"></div>
+      </div>
+
+      <!-- Alert State -->
+      <div class="alert-state normal">COMBAT READY</div>
+
+      <!-- Targeting Reticle -->
+      <div class="targeting-reticle">
+        <div class="reticle-inner"></div>
+        <div class="reticle-line horizontal"></div>
+        <div class="reticle-line vertical"></div>
+        <div class="reticle-dot"></div>
+      </div>
+
+      <!-- Drone System UI -->
+      <div id="drone-status" class="drone-panel">
+        <div class="panel-header">ASSISTANT DRONES</div>
+        <div class="panel-content">
+          <div class="drone-status drone-attack">
+            <div class="drone-name">ATTACK LV1</div>
+            <div class="drone-state">IDLE</div>
+            <div class="energy-container">
+              <div class="energy-bar" style="width: 90%;"></div>
+            </div>
+          </div>
+          <div class="drone-status drone-defense">
+            <div class="drone-name">DEFENSE LV1</div>
+            <div class="drone-state">ACTIVE</div>
+            <div class="energy-container">
+              <div class="energy-bar" style="width: 70%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Voice Command UI -->
+      <div id="voice-controls" class="voice-panel">
+        <button id="voice-button" title="Press V to activate voice commands"></button>
+        <div id="voice-transcription" class="voice-text">[VOICE RECOGNITION READY]</div>
+        <div id="command-feedback" class="feedback-text"></div>
+        <div class="voice-help">
+          PRESS V OR CLICK MIC TO ACTIVATE
+        </div>
+      </div>
+    </div>
+    
+    <div id="menu" class="active">
+      <h1>SPACE DOGFIGHT</h1>
+      <div class="menu-options">
+        <button id="start-game">START MISSION</button>
+        <button id="options">FLIGHT SYSTEMS</button>
+        <button id="credits">PILOT RECORDS</button>
+      </div>
+    </div>
+    
+    <div class="explosion" id="explosion"></div>
+  </div>
+
+  <script>
+// Game Physics and Controls
+const PHYSICS = {
+  maxSpeed: 5,
+  acceleration: 0.05,
+  deceleration: 0.01,
+  rotationSpeed: 0.05,
+  boostMultiplier: 2,
+  boostDuration: 2000,
+  boostCooldown: 5000,
+  dragCoefficient: 0.98,
+  driftFactor: 0.95
+};
+
+// Game state
+const gameState = {
+  player: {
+    position: { x: 0, y: 0 },
+    velocity: { x: 0, y: 0 },
+    rotation: 0,
+    health: 100,
+    shield: 70,
+    boostTimeRemaining: 0,
+    boostCooldown: 0,
+    lastShot: 0,
+    missileAmmo: 8,
+    isAlive: true
+  },
+  enemies: [],
+  asteroids: [],
+  projectiles: [],
+  explosions: [],
+  keys: {
+    w: false,
+    a: false,
+    s: false,
+    d: false,
+    e: false,  // boost
+    r: false   // brake
+  },
+  mouse: { x: 0, y: 0 },
+  gameActive: false,
+  lastTime: 0,
+  gameTime: 0
+};
+    // Simple demo of the Wing Commander UI
+    document.addEventListener('DOMContentLoaded', () => {
+      // Add keyboard and mouse event listeners
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'w' || event.key === 'W') gameState.keys.w = true;
+        if (event.key === 'a' || event.key === 'A') gameState.keys.a = true;
+        if (event.key === 's' || event.key === 'S') gameState.keys.s = true;
+        if (event.key === 'd' || event.key === 'D') gameState.keys.d = true;
+        if (event.key === 'e' || event.key === 'E') gameState.keys.e = true;
+        if (event.key === 'r' || event.key === 'R') gameState.keys.r = true;
+        
+        if (event.key === 'v' || event.key === 'V') {
+          toggleVoiceListening();
+        }
+        if (event.key === 'Escape') {
+          if (gameState.gameActive) {
+            gameState.gameActive = false;
+            menu.classList.add('active');
+          } else {
+            menu.classList.toggle('active');
+          }
+        }
+      });
+      
+      document.addEventListener('keyup', (event) => {
+        if (event.key === 'w' || event.key === 'W') gameState.keys.w = false;
+        if (event.key === 'a' || event.key === 'A') gameState.keys.a = false;
+        if (event.key === 's' || event.key === 'S') gameState.keys.s = false;
+        if (event.key === 'd' || event.key === 'D') gameState.keys.d = false;
+        if (event.key === 'e' || event.key === 'E') gameState.keys.e = false;
+        if (event.key === 'r' || event.key === 'R') gameState.keys.r = false;
+      });
+      
+      document.addEventListener('mousemove', (event) => {
+        gameState.mouse.x = event.clientX;
+        gameState.mouse.y = event.clientY;
+      });
+      
+      document.addEventListener('mousedown', (event) => {
+        if (event.button === 0) gameState.mouse.leftButton = true;
+        if (event.button === 2) gameState.mouse.rightButton = true;
+      });
+      
+      document.addEventListener('mouseup', (event) => {
+        if (event.button === 0) gameState.mouse.leftButton = false;
+        if (event.button === 2) gameState.mouse.rightButton = false;
+      });
+      
+      // Prevent context menu on right click
+      document.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+      });
+      // Get elements
+      const loadingScreen = document.getElementById('loading-screen');
+      const menu = document.getElementById('menu');
+      const hud = document.getElementById('hud');
+      const startButton = document.getElementById('start-game');
+      const voiceButton = document.getElementById('voice-button');
+      const transcriptionElement = document.getElementById('voice-transcription');
+      const feedbackElement = document.getElementById('command-feedback');
+      const alertState = document.querySelector('.alert-state');
+      const explosion = document.getElementById('explosion');
+      
+      // Generate random asteroids
+      generateAsteroids(30);
+      
+      // Initialize starfield
+      initStarfield();
+      
+      // Simulate loading and then show menu
+      setTimeout(() => {
+        loadingScreen.style.display = 'none';
+      }, 3000);
+      
+      // Handle start game button
+      startButton.addEventListener('click', startGame);
+      
+      // Handle voice button
+      voiceButton.addEventListener('click', () => {
+        toggleVoiceListening();
+      });
+      
+      // Handle keyboard shortcuts
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'v' || event.key === 'V') {
+          toggleVoiceListening();
+        }
+        if (event.key === 'Escape') {
+          menu.classList.toggle('active');
+        }
+      });
+      
+      // Voice listening toggle function
+      function toggleVoiceListening() {
+        voiceButton.classList.toggle('active');
+        
+        if (voiceButton.classList.contains('active')) {
+          transcriptionElement.textContent = 'Listening...';
+          
+          // Simulate voice command after a short delay
+          setTimeout(() => {
+            simulateVoiceCommand();
+          }, 2000);
+        } else {
+          transcriptionElement.textContent = '[VOICE RECOGNITION READY]';
+          feedbackElement.textContent = '';
+        }
+      }
+      
+      // Simulate voice command
+      function simulateVoiceCommand() {
+        const commands = [
+          { text: 'Drone, attack target', feedback: 'Command: ATTACK DRONE ENGAGING' },
+          { text: 'Activate shield', feedback: 'Command: DEFENSE SHIELD ACTIVATED' },
+          { text: 'Scan area', feedback: 'Command: AREA SCAN INITIATED' },
+          { text: 'All drones, attack', feedback: 'Command: ALL DRONES ENGAGING' }
+        ];
+        
+        const randomCommand = commands[Math.floor(Math.random() * commands.length)];
+        
+        transcriptionElement.textContent = randomCommand.text;
+        feedbackElement.textContent = randomCommand.feedback;
+        
+        // Turn off voice listening after command
+        setTimeout(() => {
+          voiceButton.classList.remove('active');
+        }, 1000);
+      }
+      
+      // Simulate combat alert
+      function simulateCombatAlert() {
+        alertState.classList.remove('normal');
+        alertState.classList.add('caution');
+        alertState.textContent = 'HOSTILES DETECTED';
+        
+        // Escalate to danger after a delay
+        setTimeout(() => {
+          alertState.classList.remove('caution');
+          alertState.classList.add('danger');
+          alertState.textContent = 'UNDER ATTACK';
+        }, 3000);
+      }
+      
+      // Trigger explosion effect
+      function triggerExplosion() {
+        // Random position within view
+        const x = 30 + Math.random() * 40; // 30-70% across screen
+        const y = 30 + Math.random() * 40; // 30-70% down screen
+        
+        explosion.style.left = `${x}%`;
+        explosion.style.top = `${y}%`;
+        explosion.classList.add('active');
+        
+        // Reset explosion after animation
+        setTimeout(() => {
+          explosion.classList.remove('active');
+        }, 1500);
+      }
+      
+      // Generate asteroids
+      function generateAsteroids(count) {
+        const container = document.getElementById('game-container');
+        
+        for (let i = 0; i < count; i++) {
+          const asteroid = document.createElement('div');
+          asteroid.className = 'asteroid';
+          
+          // Random size
+          const size = 5 + Math.random() * 20;
+          asteroid.style.width = `${size}px`;
+          asteroid.style.height = `${size}px`;
+          
+          // Random position
+          asteroid.style.left = `${Math.random() * 100}%`;
+          asteroid.style.top = `${Math.random() * 100}%`;
+          
+          // Random z-index for depth
+          asteroid.style.zIndex = Math.floor(Math.random() * 5);
+          
+          container.appendChild(asteroid);
+        }
+      }
+      
+      // Initialize starfield
+      function initStarfield() {
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Star properties
+        const stars = [];
+        const starCount = 200;
+        
+        // Create stars
+        for (let i = 0; i < starCount; i++) {
+          stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2,
+            speed: 0.1 + Math.random() * 0.3
+          });
+        }
+        
+        // Animation function
+        function animate() {
+          // Clear canvas
+          ctx.fillStyle = '#000';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw stars
+          ctx.fillStyle = '#fff';
+          for (let i = 0; i < starCount; i++) {
+            const star = stars[i];
+            
+            // Draw star
+            ctx.fillRect(star.x, star.y, star.size, star.size);
+            
+            // Move star
+            star.y += star.speed;
+            
+            // Reset if off screen
+            if (star.y > canvas.height) {
+              star.y = 0;
+              star.x = Math.random() * canvas.width;
+            }
+          }
+          
+          // Continue animation
+          requestAnimationFrame(animate);
+        }
+        
+        // Start animation
+        animate();
+      }
+    });
+  </script>
+</body>
+</html>
+
+// Start game and initialize game loop
+function startGame() {
+  menu.classList.remove('active');
+  hud.classList.remove('hidden');
+  gameState.gameActive = true;
+  initializeGame();
+  requestAnimationFrame(gameLoop);
+}
+
+// Initialize game state
+function initializeGame() {
+  // Reset player state
+  gameState.player = {
+    position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+    velocity: { x: 0, y: 0 },
+    rotation: 0,
+    health: 100,
+    shield: 70,
+    boostTimeRemaining: 0,
+    boostCooldown: 0,
+    lastShot: 0,
+    missileAmmo: 8,
+    isAlive: true
+  };
+  
+  // Clear arrays
+  gameState.enemies = [];
+  gameState.asteroids = [];
+  gameState.projectiles = [];
+  gameState.explosions = [];
+  
+  // Create enemy ships
+  createEnemies(3);
+  
+  // Create asteroids for gameplay
+  createGameAsteroids(15);
+  
+  // Reset time
+  gameState.lastTime = performance.now();
+  gameState.gameTime = 0;
+  
+  // Update HUD
+  updateHUD();
+  
+  // Set alert state to normal
+  alertState.className = 'alert-state normal';
+  alertState.textContent = 'COMBAT READY';
+}
+
+// Create enemy ships
+function createEnemies(count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 300 + Math.random() * 300;
+    
+    const enemy = {
+      position: {
+        x: gameState.player.position.x + Math.cos(angle) * distance,
+        y: gameState.player.position.y + Math.sin(angle) * distance
+      },
+      velocity: { x: 0, y: 0 },
+      rotation: Math.random() * Math.PI * 2,
+      health: 50,
+      size: 40,
+      lastShot: 0,
+      shotInterval: 1000 + Math.random() * 2000,
+      color: '#f33',
+      isAlive: true,
+      type: 'enemy'
+    };
+    
+    gameState.enemies.push(enemy);
+  }
+}
+
+// Create asteroids for gameplay
+function createGameAsteroids(count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 200 + Math.random() * 400;
+    
+    const asteroid = {
+      position: {
+        x: gameState.player.position.x + Math.cos(angle) * distance,
+        y: gameState.player.position.y + Math.sin(angle) * distance
+      },
+      velocity: {
+        x: (Math.random() - 0.5) * 2,
+        y: (Math.random() - 0.5) * 2
+      },
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() - 0.5) * 0.05,
+      size: 20 + Math.random() * 50,
+      health: 30,
+      isAlive: true,
+      type: 'asteroid'
+    };
+    
+    gameState.asteroids.push(asteroid);
+  }
+}
+
+// Main game loop
+function gameLoop(timestamp) {
+  if (!gameState.gameActive) return;
+  
+  // Calculate delta time
+  const deltaTime = timestamp - gameState.lastTime;
+  gameState.lastTime = timestamp;
+  gameState.gameTime += deltaTime;
+  
+  // Update all game entities
+  updatePlayer(deltaTime);
+  updateEnemies(deltaTime);
+  updateAsteroids(deltaTime);
+  updateProjectiles(deltaTime);
+  updateExplosions(deltaTime);
+  
+  // Check collisions
+  checkCollisions();
+  
+  // Draw radar
+  updateRadar();
+  
+  // Update HUD
+  updateHUD();
+  
+  // Continue loop
+  requestAnimationFrame(gameLoop);
+}
+
+// Update player position and state
+function updatePlayer(deltaTime) {
+  if (!gameState.player.isAlive) return;
+  
+  // Handle keyboard input
+  const player = gameState.player;
+  
+  // Forward/backward movement
+  if (gameState.keys.w) {
+    // Calculate acceleration vector based on ship rotation
+    const forwardX = Math.sin(player.rotation);
+    const forwardY = -Math.cos(player.rotation);
+    
+    // Apply acceleration
+    let acceleration = PHYSICS.acceleration;
+    
+    // Apply boost if active
+    if (player.boostTimeRemaining > 0) {
+      acceleration *= PHYSICS.boostMultiplier;
+      player.boostTimeRemaining -= deltaTime;
+    }
+    
+    // Update velocity
+    player.velocity.x += forwardX * acceleration * deltaTime;
+    player.velocity.y += forwardY * acceleration * deltaTime;
+  } else if (gameState.keys.s) {
+    // Reverse/brake
+    player.velocity.x *= PHYSICS.driftFactor;
+    player.velocity.y *= PHYSICS.driftFactor;
+  }
+  
+  // Rotation left/right
+  if (gameState.keys.a) {
+    player.rotation -= PHYSICS.rotationSpeed * deltaTime;
+  } else if (gameState.keys.d) {
+    player.rotation += PHYSICS.rotationSpeed * deltaTime;
+  }
+  
+  // Boost activation
+  if (gameState.keys.e && player.boostCooldown <= 0 && player.boostTimeRemaining <= 0) {
+    player.boostTimeRemaining = PHYSICS.boostDuration;
+    player.boostCooldown = PHYSICS.boostCooldown;
+  }
+  
+  // Brake
+  if (gameState.keys.r) {
+    player.velocity.x *= 0.95;
+    player.velocity.y *= 0.95;
+  }
+  
+  // Update boost cooldown
+  if (player.boostCooldown > 0) {
+    player.boostCooldown -= deltaTime;
+  }
+  
+  // Apply drag
+  player.velocity.x *= PHYSICS.dragCoefficient;
+  player.velocity.y *= PHYSICS.dragCoefficient;
+  
+  // Limit maximum speed
+  const speed = Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2);
+  let maxSpeed = PHYSICS.maxSpeed;
+  
+  // Apply boost multiplier if active
+  if (player.boostTimeRemaining > 0) {
+    maxSpeed *= PHYSICS.boostMultiplier;
+  }
+  
+  if (speed > maxSpeed) {
+    player.velocity.x = (player.velocity.x / speed) * maxSpeed;
+    player.velocity.y = (player.velocity.y / speed) * maxSpeed;
+  }
+  
+  // Update position
+  player.position.x += player.velocity.x;
+  player.position.y += player.velocity.y;
+  
+  // Update spaceship model position
+  const shipContainer = document.getElementById('spaceship-container');
+  shipContainer.style.left = player.position.x + 'px';
+  shipContainer.style.top = player.position.y + 'px';
+  shipContainer.style.transform = `translate(-50%, -50%) rotate(${player.rotation}rad)`;
+  
+  // Process mouse aim
+  const dx = gameState.mouse.x - player.position.x;
+  const dy = gameState.mouse.y - player.position.y;
+  player.targetRotation = Math.atan2(dx, -dy);
+  
+  // Weapon firing
+  if (gameState.mouse.leftButton) {
+    firePrimaryWeapon();
+  }
+  
+  if (gameState.mouse.rightButton) {
+    fireSecondaryWeapon();
+  }
+  
+  // Shield regeneration
+  if (player.shield < 100) {
+    player.shield += 0.01 * deltaTime;
+    if (player.shield > 100) player.shield = 100;
+  }
+}
+
+// Update enemy ships
+function updateEnemies(deltaTime) {
+  gameState.enemies.forEach(enemy => {
+    if (!enemy.isAlive) return;
+    
+    // Basic AI: track player
+    const dx = gameState.player.position.x - enemy.position.x;
+    const dy = gameState.player.position.y - enemy.position.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Update enemy rotation to face player
+    enemy.rotation = Math.atan2(dx, -dy);
+    
+    // Move towards player if far away
+    if (distance > 200) {
+      const speedFactor = 0.02;
+      enemy.velocity.x += dx * speedFactor;
+      enemy.velocity.y += dy * speedFactor;
+    } else if (distance < 150) {
+      // Move away if too close
+      const speedFactor = 0.01;
+      enemy.velocity.x -= dx * speedFactor;
+      enemy.velocity.y -= dy * speedFactor;
+    }
+    
+    // Apply drag
+    enemy.velocity.x *= 0.98;
+    enemy.velocity.y *= 0.98;
+    
+    // Limit speed
+    const speed = Math.sqrt(enemy.velocity.x ** 2 + enemy.velocity.y ** 2);
+    const maxSpeed = 3;
+    if (speed > maxSpeed) {
+      enemy.velocity.x = (enemy.velocity.x / speed) * maxSpeed;
+      enemy.velocity.y = (enemy.velocity.y / speed) * maxSpeed;
+    }
+    
+    // Update position
+    enemy.position.x += enemy.velocity.x;
+    enemy.position.y += enemy.velocity.y;
+    
+    // Fire at player
+    enemy.lastShot += deltaTime;
+    if (enemy.lastShot > enemy.shotInterval && distance < 400) {
+      enemy.lastShot = 0;
+      
+      // Create projectile
+      const forwardX = Math.sin(enemy.rotation);
+      const forwardY = -Math.cos(enemy.rotation);
+      
+      const projectile = {
+        position: {
+          x: enemy.position.x + forwardX * 20,
+          y: enemy.position.y + forwardY * 20
+        },
+        velocity: {
+          x: forwardX * 8,
+          y: forwardY * 8
+        },
+        damage: 10,
+        size: 4,
+        color: '#f33',
+        life: 2000,
+        fromPlayer: false
+      };
+      
+      gameState.projectiles.push(projectile);
+    }
+  });
+}
+
+// Update asteroids
+function updateAsteroids(deltaTime) {
+  gameState.asteroids.forEach(asteroid => {
+    if (!asteroid.isAlive) return;
+    
+    // Update position
+    asteroid.position.x += asteroid.velocity.x;
+    asteroid.position.y += asteroid.velocity.y;
+    
+    // Update rotation
+    asteroid.rotation += asteroid.rotationSpeed;
+  });
+}
+
+// Update projectiles
+function updateProjectiles(deltaTime) {
+  // Update existing projectiles
+  for (let i = gameState.projectiles.length - 1; i >= 0; i--) {
+    const projectile = gameState.projectiles[i];
+    
+    // Update position
+    projectile.position.x += projectile.velocity.x;
+    projectile.position.y += projectile.velocity.y;
+    
+    // Decrease life
+    projectile.life -= deltaTime;
+    
+    // Remove if expired
+    if (projectile.life <= 0) {
+      gameState.projectiles.splice(i, 1);
+    }
+  }
+}
+
+// Update explosions
+function updateExplosions(deltaTime) {
+  for (let i = gameState.explosions.length - 1; i >= 0; i--) {
+    const explosion = gameState.explosions[i];
+    
+    // Decrease life
+    explosion.life -= deltaTime;
+    
+    // Remove if expired
+    if (explosion.life <= 0) {
+      gameState.explosions.splice(i, 1);
+    }
+  }
+}
+
+// Check for collisions between game objects
+function checkCollisions() {
+  // Player vs Asteroids
+  gameState.asteroids.forEach(asteroid => {
+    if (!asteroid.isAlive) return;
+    
+    const dx = gameState.player.position.x - asteroid.position.x;
+    const dy = gameState.player.position.y - asteroid.position.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance < asteroid.size + 20) { // 20 = player ship radius
+      // Damage player
+      takePlayerDamage(20);
+      
+      // Damage asteroid
+      asteroid.health -= 10;
+      if (asteroid.health <= 0) {
+        destroyAsteroid(asteroid);
+      }
+      
+      // Create explosion
+      createExplosion(asteroid.position.x, asteroid.position.y, '#aaa');
+    }
+  });
+  
+  // Player vs Enemies
+  gameState.enemies.forEach(enemy => {
+    if (!enemy.isAlive) return;
+    
+    const dx = gameState.player.position.x - enemy.position.x;
+    const dy = gameState.player.position.y - enemy.position.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance < enemy.size + 20) { // 20 = player ship radius
+      // Damage player
+      takePlayerDamage(30);
+      
+      // Damage enemy
+      enemy.health -= 20;
+      if (enemy.health <= 0) {
+        destroyEnemy(enemy);
+      }
+      
+      // Create explosion
+      createExplosion(enemy.position.x, enemy.position.y, '#f33');
+    }
+  });
+  
+  // Projectiles vs objects
+  gameState.projectiles.forEach(projectile => {
+    // Projectile vs asteroids
+    gameState.asteroids.forEach(asteroid => {
+      if (!asteroid.isAlive) return;
+      
+      const dx = projectile.position.x - asteroid.position.x;
+      const dy = projectile.position.y - asteroid.position.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < asteroid.size + projectile.size) {
+        // Damage asteroid
+        asteroid.health -= projectile.damage;
+        if (asteroid.health <= 0) {
+          destroyAsteroid(asteroid);
+        }
+        
+        // Create explosion
+        createExplosion(projectile.position.x, projectile.position.y, '#aaa');
+        
+        // Remove projectile
+        gameState.projectiles.splice(gameState.projectiles.indexOf(projectile), 1);
+      }
+    });
+    
+    // Player projectile vs enemies
+    if (projectile.fromPlayer) {
+      gameState.enemies.forEach(enemy => {
+        if (!enemy.isAlive) return;
+        
+        const dx = projectile.position.x - enemy.position.x;
+        const dy = projectile.position.y - enemy.position.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < enemy.size + projectile.size) {
+          // Damage enemy
+          enemy.health -= projectile.damage;
+          if (enemy.health <= 0) {
+            destroyEnemy(enemy);
+          }
+          
+          // Create explosion
+          createExplosion(projectile.position.x, projectile.position.y, '#f33');
+          
+          // Remove projectile
+          gameState.projectiles.splice(gameState.projectiles.indexOf(projectile), 1);
+        }
+      });
+    } 
+    // Enemy projectile vs player
+    else if (!projectile.fromPlayer) {
+      const dx = projectile.position.x - gameState.player.position.x;
+      const dy = projectile.position.y - gameState.player.position.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < 20 + projectile.size) { // 20 = player ship radius
+        // Damage player
+        takePlayerDamage(projectile.damage);
+        
+        // Create explosion
+        createExplosion(projectile.position.x, projectile.position.y, '#f33');
+        
+        // Remove projectile
+        gameState.projectiles.splice(gameState.projectiles.indexOf(projectile), 1);
+      }
+    }
+  });
+}
+
+// Apply damage to player
+function takePlayerDamage(amount) {
+  // Apply to shield first if available
+  if (gameState.player.shield > 0) {
+    gameState.player.shield -= amount;
+    
+    // If shield depleted, apply remaining damage to health
+    if (gameState.player.shield < 0) {
+      gameState.player.health += gameState.player.shield;
+      gameState.player.shield = 0;
+    }
+  } else {
+    // No shield, damage health directly
+    gameState.player.health -= amount;
+  }
+  
+  // Check if player is dead
+  if (gameState.player.health <= 0) {
+    gameState.player.health = 0;
+    gameState.player.isAlive = false;
+    
+    // Create explosion effect
+    createExplosion(gameState.player.position.x, gameState.player.position.y, '#0cf');
+    
+    // End game after delay
+    setTimeout(() => {
+      endGame();
+    }, 3000);
+  }
+  
+  // Update HUD
+  updateHUD();
+  
+  // Show damage visual
+  flashScreen('#f33');
+}
+
+// Fire primary weapon (laser)
+function firePrimaryWeapon() {
+  const now = performance.now();
+  const fireRate = 200; // ms between shots
+  
+  if (now - gameState.player.lastShot < fireRate) return;
+  
+  gameState.player.lastShot = now;
+  
+  // Create projectile
+  const forwardX = Math.sin(gameState.player.rotation);
+  const forwardY = -Math.cos(gameState.player.rotation);
+  
+  // Create two laser projectiles (one from each wing)
+  for (let offset of [-10, 10]) {
+    // Calculate offset position for each wing
+    const offsetX = -forwardY * offset;
+    const offsetY = forwardX * offset;
+    
+    const projectile = {
+      position: {
+        x: gameState.player.position.x + forwardX * 30 + offsetX,
+        y: gameState.player.position.y + forwardY * 30 + offsetY
+      },
+      velocity: {
+        x: forwardX * 15,
+        y: forwardY * 15
+      },
+      damage: 10,
+      size: 3,
+      color: '#0cf',
+      life: 1000,
+      fromPlayer: true,
+      type: 'laser'
+    };
+    
+    gameState.projectiles.push(projectile);
+  }
+  
+  // Play sound effect
+  // playSound('laser');
+}
+
+// Fire secondary weapon (missile)
+function fireSecondaryWeapon() {
+  const now = performance.now();
+  const fireRate = 1000; // ms between shots
+  
+  if (now - gameState.player.lastShot < fireRate || gameState.player.missileAmmo <= 0) return;
+  
+  gameState.player.lastShot = now;
+  gameState.player.missileAmmo--;
+  
+  // Create projectile
+  const forwardX = Math.sin(gameState.player.rotation);
+  const forwardY = -Math.cos(gameState.player.rotation);
+  
+  const projectile = {
+    position: {
+      x: gameState.player.position.x + forwardX * 30,
+      y: gameState.player.position.y + forwardY * 30
+    },
+    velocity: {
+      x: forwardX * 10,
+      y: forwardY * 10
+    },
+    damage: 40,
+    size: 5,
+    color: '#ff3',
+    life: 3000,
+    fromPlayer: true,
+    type: 'missile',
+    target: findNearestEnemy()
+  };
+  
+  gameState.projectiles.push(projectile);
+  
+  // Update HUD
+  updateHUD();
+  
+  // Play sound effect
+  // playSound('missile');
+}
+
+// Find the nearest enemy for missile targeting
+function findNearestEnemy() {
+  let nearestEnemy = null;
+  let nearestDistance = Number.MAX_VALUE;
+  
+  gameState.enemies.forEach(enemy => {
+    if (!enemy.isAlive) return;
+    
+    const dx = enemy.position.x - gameState.player.position.x;
+    const dy = enemy.position.y - gameState.player.position.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestEnemy = enemy;
+    }
+  });
+  
+  return nearestEnemy;
+}
+
+// Create explosion effect at position
+function createExplosion(x, y, color) {
+  const explosion = document.createElement('div');
+  explosion.className = 'explosion';
+  explosion.style.left = x + 'px';
+  explosion.style.top = y + 'px';
+  
+  // Customize explosion based on color
+  if (color) {
+    explosion.style.background = `radial-gradient(circle, #fff, ${color}, #500, transparent)`;
+  }
+  
+  // Add to container
+  document.getElementById('game-container').appendChild(explosion);
+  
+  // Trigger animation
+  setTimeout(() => {
+    explosion.classList.add('active');
+  }, 10);
+  
+  // Remove after animation
+  setTimeout(() => {
+    try {
+      document.getElementById('game-container').removeChild(explosion);
+    } catch (e) {
+      // Element might already be removed
+    }
+  }, 1500);
+  
+  // Add to game state
+  gameState.explosions.push({
+    position: { x, y },
+    size: 1,
+    life: 1500
+  });
+}
+
+// Destroy an asteroid
+function destroyAsteroid(asteroid) {
+  asteroid.isAlive = false;
+  
+  // Add explosion effect
+  createExplosion(asteroid.position.x, asteroid.position.y, '#aaa');
+  
+  // Split into smaller asteroids if large enough
+  if (asteroid.size > 30) {
+    // Create 2-3 smaller asteroids
+    const fragments = 2 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < fragments; i++) {
+      const smallAsteroid = {
+        position: {
+          x: asteroid.position.x + (Math.random() - 0.5) * 20,
+          y: asteroid.position.y + (Math.random() - 0.5) * 20
+        },
+        velocity: {
+          x: asteroid.velocity.x + (Math.random() - 0.5) * 4,
+          y: asteroid.velocity.y + (Math.random() - 0.5) * 4
+        },
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.1,
+        size: asteroid.size * 0.5,
+        health: 15,
+        isAlive: true,
+        type: 'asteroid'
+      };
+      
+      gameState.asteroids.push(smallAsteroid);
+    }
+  }
+}
+
+// Destroy an enemy ship
+function destroyEnemy(enemy) {
+  enemy.isAlive = false;
+  
+  // Create explosion effect
+  createExplosion(enemy.position.x, enemy.position.y, '#f33');
+  
+  // Check if all enemies are destroyed
+  const remainingEnemies = gameState.enemies.filter(e => e.isAlive).length;
+  if (remainingEnemies === 0) {
+    // Create more enemies after delay
+    setTimeout(() => {
+      createEnemies(Math.min(5, Math.floor(gameState.gameTime / 30000) + 3));
+    }, 5000);
+  }
+}
+
+// Update the HUD elements
+function updateHUD() {
+  // Update health bar
+  const healthValue = document.querySelector('.health-value');
+  if (healthValue) {
+    healthValue.style.transform = `scaleX(${gameState.player.health / 100})`;
+  }
+  
+  // Update shield bar
+  const shieldValue = document.querySelector('.shield-value');
+  if (shieldValue) {
+    shieldValue.style.transform = `scaleX(${gameState.player.shield / 100})`;
+  }
+  
+  // Update missile ammo counter
+  const missileAmmo = document.querySelector('.weapon.secondary .weapon-ammo');
+  if (missileAmmo) {
+    missileAmmo.textContent = gameState.player.missileAmmo;
+  }
+  
+  // Update boost indicator
+  const boostValue = document.querySelector('.boost-value');
+  if (boostValue) {
+    const boostPercent = gameState.player.boostTimeRemaining > 0 
+      ? gameState.player.boostTimeRemaining / PHYSICS.boostDuration
+      : gameState.player.boostCooldown > 0
+        ? 1 - (gameState.player.boostCooldown / PHYSICS.boostCooldown)
+        : 1;
+    
+    boostValue.style.transform = `scaleX(${boostPercent})`;
+  }
+}
+
+// Update radar display with nearby entities
+function updateRadar() {
+  const radar = document.querySelector('.radar');
+  if (!radar) return;
+  
+  // Clear previous markers
+  const existingMarkers = radar.querySelectorAll('.radar-marker');
+  existingMarkers.forEach(marker => marker.remove());
+  
+  // Calculate radar range and scale
+  const radarRadius = 150 / 2; // half of radar diameter in pixels
+  const radarRange = 800; // game units represented by radar
+  
+  // Add enemy markers
+  gameState.enemies.forEach(enemy => {
+    if (!enemy.isAlive) return;
+    
+    // Calculate relative position
+    const dx = enemy.position.x - gameState.player.position.x;
+    const dy = enemy.position.y - gameState.player.position.y;
+    
+    // Skip if outside radar range
+    if (Math.abs(dx) > radarRange || Math.abs(dy) > radarRange) return;
+    
+    // Convert to radar coordinates
+    const radarX = (dx / radarRange) * radarRadius;
+    const radarY = (dy / radarRange) * radarRadius;
+    
+    // Create marker
+    const marker = document.createElement('div');
+    marker.className = 'radar-marker enemy';
+    marker.style.position = 'absolute';
+    marker.style.width = '4px';
+    marker.style.height = '4px';
+    marker.style.borderRadius = '50%';
+    marker.style.backgroundColor = '#f33';
+    marker.style.left = (radarRadius + radarX) + 'px';
+    marker.style.top = (radarRadius + radarY) + 'px';
+    
+    radar.appendChild(marker);
+  });
+  
+  // Add asteroid markers
+  gameState.asteroids.forEach(asteroid => {
+    if (!asteroid.isAlive) return;
+    
+    // Calculate relative position
+    const dx = asteroid.position.x - gameState.player.position.x;
+    const dy = asteroid.position.y - gameState.player.position.y;
+    
+    // Skip if outside radar range
+    if (Math.abs(dx) > radarRange || Math.abs(dy) > radarRange) return;
+    
+    // Convert to radar coordinates
+    const radarX = (dx / radarRange) * radarRadius;
+    const radarY = (dy / radarRange) * radarRadius;
+    
+    // Create marker
+    const marker = document.createElement('div');
+    marker.className = 'radar-marker asteroid';
+    marker.style.position = 'absolute';
+    marker.style.width = '3px';
+    marker.style.height = '3px';
+    marker.style.borderRadius = '50%';
+    marker.style.backgroundColor = '#aaa';
+    marker.style.left = (radarRadius + radarX) + 'px';
+    marker.style.top = (radarRadius + radarY) + 'px';
+    
+    radar.appendChild(marker);
+  });
+}
+
+// Flash the screen to indicate damage
+function flashScreen(color) {
+  const flash = document.createElement('div');
+  flash.style.position = 'absolute';
+  flash.style.top = '0';
+  flash.style.left = '0';
+  flash.style.width = '100%';
+  flash.style.height = '100%';
+  flash.style.backgroundColor = color;
+  flash.style.opacity = '0.3';
+  flash.style.pointerEvents = 'none';
+  flash.style.zIndex = '30';
+  
+  document.getElementById('game-container').appendChild(flash);
+  
+  // Fade out and remove
+  setTimeout(() => {
+    flash.style.transition = 'opacity 0.5s';
+    flash.style.opacity = '0';
+    
+    setTimeout(() => {
+      document.getElementById('game-container').removeChild(flash);
+    }, 500);
+  }, 100);
+}
+
+// End the game
+function endGame() {
+  gameState.gameActive = false;
+  
+  // Show game over message
+  const gameOver = document.createElement('div');
+  gameOver.style.position = 'absolute';
+  gameOver.style.top = '50%';
+  gameOver.style.left = '50%';
+  gameOver.style.transform = 'translate(-50%, -50%)';
+  gameOver.style.color = '#f33';
+  gameOver.style.fontSize = '50px';
+  gameOver.style.fontWeight = 'bold';
+  gameOver.style.textShadow = '0 0 20px rgba(255, 51, 51, 0.8)';
+  gameOver.style.zIndex = '40';
+  gameOver.textContent = 'MISSION FAILED';
+  
+  document.getElementById('game-container').appendChild(gameOver);
+  
+  // Return to menu after delay
+  setTimeout(() => {
+    document.getElementById('game-container').removeChild(gameOver);
+    menu.classList.add('active');
+  }, 5000);
+}
