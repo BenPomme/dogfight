@@ -30,8 +30,9 @@ The project has been successfully enhanced with multiple gameplay improvements:
    - **Scoring**: Combo-based scoring system with high score tracking
    - **Visual Effects**: Nebulae, dust particles, distant stars, and planets
 
-3. **Multiple Demo Versions**: The project includes several options:
-   - `enhanced-game.html`: The most reliable and feature-complete version
+3. **Multiple Game Versions**: The project includes several options:
+   - `2d-mode.html`: NEW! Top-down 2D combat arena with simplified controls
+   - `enhanced-game.html`: The most reliable and feature-complete 3D version
    - `three-demo.html`: Simplified interactive Three.js demo
    - `playable-dogfight.html`: Styled Wing Commander-inspired UI demo
    - `wingcommander-demo.html`: Alternative Wing Commander theme UI
@@ -58,7 +59,7 @@ https://dogfight-3ae8b.web.app
 
 ## Controls
 
-### Keyboard Controls (Arcade Mode)
+### 3D Mode Controls (Arcade Mode)
 - **W**: Accelerate/Increase throttle
 - **Arrow Keys**: Control pitch (up/down) and yaw (left/right)
 - **Q/E**: Roll left/right
@@ -66,7 +67,15 @@ https://dogfight-3ae8b.web.app
 - **D**: Fire secondary weapon (missiles)
 - **ESC**: Pause game
 
-### Mouse Controls (Optional)
+### 2D Mode Controls
+- **Up Arrow or W**: Accelerate forward
+- **Down Arrow or S**: Brake/reverse
+- **A/D or Left/Right Arrow**: Turn left/right
+- **Space**: Fire primary weapon (lasers)
+- **Shift**: Fire secondary weapon (missiles)
+- **ESC**: Pause game
+
+### Mouse Controls (Optional in 3D Mode)
 - **Mouse**: Aim ship (when not in arcade mode)
 - **Left Click**: Fire primary weapon
 - **Right Click**: Fire secondary weapon (missiles)
@@ -108,12 +117,23 @@ https://dogfight-3ae8b.web.app
    - Entity system for players, enemies, and mission objects
    - Effects system for visual enhancements
 
+7. **2D Mode Implementation**: Created a simplified top-down gameplay variant:
+   - Restricted movement to a 2D plane (X and Z axes only)
+   - Implemented fixed top-down camera perspective
+   - Created a circular arena with visual boundary and effects
+   - Added arena collision detection and bouncing physics
+   - Simplified controls for more responsive handling
+   - Forward/backward movement with up/down arrow keys
+   - Ships shoot projectiles from their front correctly
+   - Stable camera that doesn't flip or rotate
+
 ## Troubleshooting
 
 If you encounter any issues:
 
 1. **Rendering Issues**: If 3D elements aren't visible:
-   - Try the enhanced-game.html version first (most reliable)
+   - Try the 2d-mode.html version first (most reliable and simpler)
+   - Try the enhanced-game.html version if you want 3D gameplay
    - Run the diagnostics tool to check WebGL support
    - Check browser console for specific error messages
 

@@ -25,13 +25,21 @@ Space Dogfight is a physics-based spaceship combat game featuring:
 
 ## Game Controls
 
-### Arcade Mode Controls (Enhanced Game)
+### 3D Mode Controls (Arcade Mode)
 - **W** - Accelerate/Increase throttle
 - **Arrow Keys** - Control pitch (up/down) and yaw (left/right)
 - **Q/E** - Roll left/right
 - **Space** - Fire primary weapon (laser)
 - **D** - Fire secondary weapon (missiles)
 - **ESC** - Pause menu
+
+### 2D Mode Controls (Top-Down Mode)
+- **Up Arrow or W** - Accelerate forward
+- **Down Arrow or S** - Brake/reverse
+- **A/D or Left/Right Arrow** - Turn left/right
+- **Space** - Fire primary weapon (lasers)
+- **Shift** - Fire secondary weapon (missiles)
+- **ESC** - Pause game
 
 ### Traditional Controls (Other Game Modes)
 - **W/A/S/D** - Move forward/left/backward/right
@@ -138,6 +146,10 @@ See [roadmap.md](../roadmap.md) for the detailed development plan.
 - ✅ Improved weapon systems with visual effects
 - ✅ Added enemy AI with detection and combat behavior
 - ✅ Implemented health/shield system
+- ✅ Enhanced 2D mode with improved controls and camera
+- ✅ Fixed projectile firing positions for all ships
+- ✅ Stabilized top-down camera view in 2D mode
+- ✅ Added forward/backward movement with arrow keys in 2D mode
 - 🔄 Adding collectible power-ups
 - 🔄 Creating mission objectives
 - 🔄 Implementing score system
