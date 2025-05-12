@@ -5,12 +5,13 @@ A browser-based 3D space combat game built with Three.js and JavaScript featurin
 ## Overview
 
 Space Dogfight is a physics-based spaceship combat game featuring:
-- Intuitive WASD + mouse flight controls
+- Arcade-style flight controls with physics-based movement
 - Physics-based movement with inertia and drift
 - Multiple weapon systems (lasers, missiles, etc.)
-- Voice-controlled assistant drone wingmen
-- Various game modes (1v1, free-for-all, vs AI)
-- Competitive multiplayer system with rankings
+- Enemy AI fighters with combat tactics
+- Visual effects for weapons, explosions and impacts
+- Voice-controlled assistant drone wingmen (upcoming)
+- Various game modes (campaign, free-for-all, vs AI)
 
 ## Technology Stack
 
@@ -24,7 +25,15 @@ Space Dogfight is a physics-based spaceship combat game featuring:
 
 ## Game Controls
 
-### Traditional Controls
+### Arcade Mode Controls (Enhanced Game)
+- **W** - Accelerate/Increase throttle
+- **Arrow Keys** - Control pitch (up/down) and yaw (left/right)
+- **Q/E** - Roll left/right
+- **Space** - Fire primary weapon (laser)
+- **D** - Fire secondary weapon (missiles)
+- **ESC** - Pause menu
+
+### Traditional Controls (Other Game Modes)
 - **W/A/S/D** - Move forward/left/backward/right
 - **Mouse** - Aim ship
 - **Left Click** - Fire primary weapon (laser)
@@ -122,7 +131,16 @@ space-dogfight/
 
 ## Development Roadmap
 
-See [roadmap.md](docs/roadmap.md) for the detailed development plan.
+See [roadmap.md](../roadmap.md) for the detailed development plan.
+
+### Current Progress
+- ✅ Enhanced player controls with arcade-style flight physics
+- ✅ Improved weapon systems with visual effects
+- ✅ Added enemy AI with detection and combat behavior
+- ✅ Implemented health/shield system
+- 🔄 Adding collectible power-ups
+- 🔄 Creating mission objectives
+- 🔄 Implementing score system
 
 ## Contributing
 

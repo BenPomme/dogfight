@@ -1,0 +1,2521 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Space Dogfight - Enhanced Game</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; 
+            color: #0af;
+            font-family: 'Orbitron', Arial, sans-serif;
+        }
+        canvas { display: block; }
+        
+        /* HUD Elements */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        /* Health and Shield Bars */
+        .health-bar, .shield-bar {
+            position: absolute;
+            left: 20px;
+            width: 250px;
+            height: 26px;
+            background-color: rgba(0, 10, 20, 0.8);
+            border: 2px solid #0cf;
+            box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+            overflow: hidden;
+            border-radius: 3px;
+        }
+        
+        .health-bar {
+            top: 20px;
+        }
+        
+        .shield-bar {
+            top: 55px;
+        }
+        
+        .health-label, .shield-label {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 0 0 5px #0cf;
+            z-index: 2;
+        }
+        
+        .health-value, .shield-value {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(to right, #f00, #f50);
+            transform-origin: left;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+        
+        .shield-value {
+            background: linear-gradient(to right, #0af, #03f);
+        }
+
+        /* Weapons Display */
+        .weapons {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 180px;
+        }
+        
+        .weapon {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 15px;
+            background-color: rgba(0, 10, 20, 0.8);
+            border: 2px solid #0cf;
+            box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+            border-radius: 3px;
+        }
+        
+        .weapon-name {
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px #0cf;
+        }
+        
+        .weapon-ammo {
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: bold;
+            color: #ff3;
+            text-shadow: 0 0 5px #ff3;
+        }
+        
+        /* Loading Screen */
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            background-image: radial-gradient(circle at center, #061428 0%, #000000 100%);
+        }
+        
+        .loader {
+            width: 80px;
+            height: 80px;
+            border: 3px solid rgba(0, 204, 255, 0.1);
+            border-radius: 50%;
+            border-top: 3px solid #0cf;
+            border-right: 3px solid #0cf;
+            animation: spin 1s linear infinite;
+            margin-bottom: 30px;
+            box-shadow: 0 0 15px #0cf;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 24px;
+            color: #0cf;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px #0cf;
+            font-weight: 700;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        /* Main Menu */
+        #menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+        
+        #menu.active {
+            display: flex;
+        }
+        
+        #menu h1 {
+            font-size: 70px;
+            margin-bottom: 60px;
+            color: #0cf;
+            text-shadow: 
+                0 0 20px #0cf,
+                0 0 40px rgba(0, 204, 255, 0.5);
+            letter-spacing: 6px;
+            font-weight: 900;
+            text-transform: uppercase;
+            animation: title-glow 3s infinite ease-in-out;
+        }
+        
+        @keyframes title-glow {
+            0% { text-shadow: 0 0 20px #0cf, 0 0 40px rgba(0, 204, 255, 0.5); }
+            50% { text-shadow: 0 0 25px #0cf, 0 0 50px rgba(0, 204, 255, 0.8); }
+            100% { text-shadow: 0 0 20px #0cf, 0 0 40px rgba(0, 204, 255, 0.5); }
+        }
+        
+        .menu-options {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        .menu-options button {
+            width: 300px;
+            padding: 15px;
+            background: linear-gradient(to right, rgba(0, 30, 60, 0.8), rgba(0, 60, 90, 0.8));
+            border: 2px solid #0cf;
+            color: #0cf;
+            font-size: 18px;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-family: 'Orbitron', sans-serif;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(0, 204, 255, 0.3);
+            font-weight: bold;
+        }
+        
+        .menu-options button:hover {
+            background: linear-gradient(to right, rgba(0, 40, 80, 0.8), rgba(0, 80, 120, 0.8));
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 204, 255, 0.5);
+        }
+        
+        /* Debug UI */
+        #debug-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(0, 10, 20, 0.8);
+            border: 2px solid #0cf;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #0cf;
+            display: none;
+        }
+        
+        .debug-info {
+            margin-bottom: 5px;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="loader"></div>
+            <div class="loading-text">INITIALIZING COMBAT SYSTEMS</div>
+        </div>
+        
+        <!-- Main Menu -->
+        <div id="menu" class="active">
+            <h1>SPACE DOGFIGHT</h1>
+            <div class="menu-options">
+                <button id="start-game">START MISSION</button>
+                <button id="show-controls">CONTROLS</button>
+                <button id="toggle-debug">DEBUG MODE</button>
+            </div>
+        </div>
+        
+        <!-- HUD -->
+        <div id="hud" class="hidden">
+            <div class="health-bar">
+                <div class="health-label">HULL</div>
+                <div class="health-value" style="transform: scaleX(1);"></div>
+            </div>
+            <div class="shield-bar">
+                <div class="shield-label">SHIELD</div>
+                <div class="shield-value" style="transform: scaleX(1);"></div>
+            </div>
+            <div class="weapons">
+                <div class="weapon primary">
+                    <div class="weapon-name">LASER</div>
+                    <div class="weapon-ammo">∞</div>
+                </div>
+                <div class="weapon secondary">
+                    <div class="weapon-name">MISSILE</div>
+                    <div class="weapon-ammo">8</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Debug Panel -->
+        <div id="debug-panel">
+            <div class="debug-info">Player Position: <span id="player-pos">0,0,0</span></div>
+            <div class="debug-info">Player Rotation: <span id="player-rot">0,0,0</span></div>
+            <div class="debug-info">Camera Position: <span id="camera-pos">0,0,0</span></div>
+            <div class="debug-info">FPS: <span id="fps">0</span></div>
+            <div class="debug-info">Entities: <span id="entity-count">0</span></div>
+        </div>
+    </div>
+    
+    <!-- Load Three.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // Game state
+        const gameState = {
+            isRunning: false,
+            isPaused: false,
+            entities: [],
+            projectiles: [],
+            player: null,
+            camera: null,
+            scene: null,
+            renderer: null,
+            lastFrameTime: 0,
+            arcadeMode: true, // Enable simplified arcade controls by default
+            lastThrottleUpdate: 0,
+            keys: {
+                w: false,      // Accelerate
+                a: false,
+                s: false,
+                d: false,      // Secondary weapon
+                space: false,  // Primary weapon
+                shift: false,
+                q: false,      // Roll left
+                e: false,      // Roll right
+                r: false,      // Reset roll
+                arrowUp: false,    // Pitch down (nose down)
+                arrowDown: false,  // Pitch up (nose up)
+                arrowLeft: false,  // Yaw left (turn left)
+                arrowRight: false  // Yaw right (turn right)
+            },
+            mouse: {
+                x: 0,
+                y: 0,
+                leftButton: false,
+                rightButton: false
+            },
+            throttleLevel: 0, // Default throttle at 0% (will accelerate with W)
+            maxRollAngle: Math.PI / 2, // 90 degrees max roll
+            debug: false
+        };
+        
+        // Physics constants
+        const PHYSICS = {
+            maxSpeed: 8,          // Increased max speed for better gameplay
+            acceleration: 0.1,    // Doubled acceleration
+            deceleration: 0.01,   // Auto deceleration when not accelerating
+            rotationSpeed: 0.05,
+            pitchRate: 0.05,      // Slightly increased pitch rate for better responsiveness
+            yawRate: 0.04,        // Slightly increased yaw rate for better turning
+            rollRate: 0.06,       // Slightly increased roll rate for better visual effect
+            autoRollRecovery: 0.95, // Rate at which roll auto-levels when not turning
+            boostMultiplier: 2,
+            dragCoefficient: 0.98,
+            throttleAcceleration: 2.0, // How quickly throttle increases - increased
+            throttleDeceleration: 0.3  // How quickly throttle decreases - slightly increased
+        };
+        
+        // DOM Elements
+        const container = document.getElementById('game-container');
+        const loadingScreen = document.getElementById('loading-screen');
+        const menu = document.getElementById('menu');
+        const hud = document.getElementById('hud');
+        const startButton = document.getElementById('start-game');
+        const debugPanel = document.getElementById('debug-panel');
+        
+        // Initialize Three.js
+        function initThree() {
+            // Create scene
+            gameState.scene = new THREE.Scene();
+            gameState.scene.background = new THREE.Color(0x000020);
+            
+            // Create camera
+            gameState.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            gameState.camera.position.set(0, 5, 15);
+            
+            // Create renderer
+            gameState.renderer = new THREE.WebGLRenderer({ antialias: true });
+            gameState.renderer.setSize(window.innerWidth, window.innerHeight);
+            gameState.renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(gameState.renderer.domElement);
+            
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            gameState.scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(10, 10, 10);
+            gameState.scene.add(directionalLight);
+            
+            // Add grid for orientation (debug)
+            const gridHelper = new THREE.GridHelper(100, 20, 0x0000ff, 0x00ffff);
+            gameState.scene.add(gridHelper);
+            
+            // Add axes helper (debug)
+            const axesHelper = new THREE.AxesHelper(50);
+            gameState.scene.add(axesHelper);
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                gameState.camera.aspect = window.innerWidth / window.innerHeight;
+                gameState.camera.updateProjectionMatrix();
+                gameState.renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            
+            console.log('Three.js initialized successfully');
+        }
+        
+        // Create player spaceship
+        function createPlayer() {
+            // Create group to hold all spaceship parts
+            const shipGroup = new THREE.Group();
+            shipGroup.name = "Player";
+            
+            // Create ship body (cone)
+            const bodyGeometry = new THREE.ConeGeometry(1, 4, 8);
+            const bodyMaterial = new THREE.MeshPhongMaterial({
+                color: 0x00aaff,
+                emissive: 0x0033aa,
+                shininess: 100
+            });
+            const shipBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            shipBody.rotation.x = Math.PI / 2; // Rotate to point forward (along Z axis)
+            shipGroup.add(shipBody);
+            
+            // Create wings using box geometries
+            const wingGeometry = new THREE.BoxGeometry(3, 0.2, 1);
+            const wingMaterial = new THREE.MeshPhongMaterial({
+                color: 0x00aaff,
+                emissive: 0x0033aa
+            });
+            
+            // Left wing
+            const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+            leftWing.position.set(-1.5, 0, 0);
+            shipGroup.add(leftWing);
+            
+            // Right wing
+            const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+            rightWing.position.set(1.5, 0, 0);
+            shipGroup.add(rightWing);
+            
+            // Create cockpit using sphere geometry
+            const cockpitGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+            const cockpitMaterial = new THREE.MeshPhongMaterial({
+                color: 0x88ccff,
+                transparent: true,
+                opacity: 0.7
+            });
+            const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
+            cockpit.position.set(0, 0.5, -1);
+            shipGroup.add(cockpit);
+            
+            // Engine glow
+            const engineLight = new THREE.PointLight(0x00ffff, 2, 10);
+            engineLight.position.set(0, 0, 2);
+            shipGroup.add(engineLight);
+            
+            // Create weapon mounts for firing positions
+            const weaponMounts = {
+                primaryLeft: new THREE.Object3D(),
+                primaryRight: new THREE.Object3D(),
+                secondary: new THREE.Object3D()
+            };
+            
+            weaponMounts.primaryLeft.position.set(-1, 0, -1.5);
+            weaponMounts.primaryRight.position.set(1, 0, -1.5);
+            weaponMounts.secondary.position.set(0, -0.5, -1);
+            
+            shipGroup.add(weaponMounts.primaryLeft);
+            shipGroup.add(weaponMounts.primaryRight);
+            shipGroup.add(weaponMounts.secondary);
+            
+            // Position ship and add to scene
+            shipGroup.position.set(0, 0, 0);
+            gameState.scene.add(shipGroup);
+            
+            // Create player object with physics properties
+            gameState.player = {
+                group: shipGroup,
+                weaponMounts: weaponMounts,
+                position: new THREE.Vector3(0, 0, 0),
+                velocity: new THREE.Vector3(0, 0, 0),
+                rotation: new THREE.Euler(0, 0, 0),
+                health: 100,
+                shield: 100,
+                weaponCooldown: 0,
+                missileAmmo: 8,
+                isAlive: true,
+                
+                update: function(deltaTime) {
+                    // Apply physics updates
+                    this.updatePhysics(deltaTime);
+                    
+                    // Update weapon cooldown
+                    if (this.weaponCooldown > 0) {
+                        this.weaponCooldown -= deltaTime;
+                    }
+                    
+                    // Update ship position and rotation
+                    this.group.position.copy(this.position);
+                    this.group.rotation.copy(this.rotation);
+                    
+                    // Slowly regenerate shield
+                    if (this.shield < 100) {
+                        this.shield = Math.min(100, this.shield + 5 * deltaTime);
+                        updateHUD();
+                    }
+                },
+                
+                updatePhysics: function(deltaTime) {
+                    // Arcade-style flight controls
+                    if (gameState.arcadeMode) {
+                        // Update throttle level based on W key (accelerate)
+                        if (gameState.keys.w) {
+                            gameState.throttleLevel += PHYSICS.throttleAcceleration * deltaTime;
+                            if (gameState.throttleLevel > 1) gameState.throttleLevel = 1;
+                        } else {
+                            // Auto decelerate when not pressing W
+                            gameState.throttleLevel -= PHYSICS.throttleDeceleration * deltaTime;
+                            if (gameState.throttleLevel < 0) gameState.throttleLevel = 0;
+                        }
+
+                        // STANDARD FLIGHT CONTROLS - Using proper Three.js fly controls convention
+
+                        // PITCH: Up/Down arrows control pitch (nose up/down) - INVERTED
+                        if (gameState.keys.arrowUp) {
+                            // INVERTED: Pitch up (nose up, plane climbs)
+                            this.rotation.x -= PHYSICS.pitchRate * deltaTime * 60;
+                        }
+                        if (gameState.keys.arrowDown) {
+                            // INVERTED: Pitch down (nose down, plane descends)
+                            this.rotation.x += PHYSICS.pitchRate * deltaTime * 60;
+                        }
+
+                        // YAW: Left/Right arrows control yaw (turn left/right) - INVERTED
+                        if (gameState.keys.arrowLeft) {
+                            // INVERTED: Yaw right
+                            this.rotation.y += PHYSICS.yawRate * deltaTime * 60;
+
+                            // Add some natural roll to turns - INVERTED
+                            let targetRoll = gameState.maxRollAngle * 0.7; // Less extreme roll
+                            this.rotation.z = THREE.MathUtils.lerp(
+                                this.rotation.z,
+                                targetRoll,
+                                PHYSICS.rollRate * deltaTime * 30
+                            );
+                        }
+                        else if (gameState.keys.arrowRight) {
+                            // INVERTED: Yaw left
+                            this.rotation.y -= PHYSICS.yawRate * deltaTime * 60;
+
+                            // Add some natural roll to turns - INVERTED
+                            let targetRoll = -gameState.maxRollAngle * 0.7; // Less extreme roll
+                            this.rotation.z = THREE.MathUtils.lerp(
+                                this.rotation.z,
+                                targetRoll,
+                                PHYSICS.rollRate * deltaTime * 30
+                            );
+                        }
+                        // Auto-level roll when not turning
+                        else if (Math.abs(this.rotation.z) > 0.01) {
+                            this.rotation.z *= PHYSICS.autoRollRecovery; // Gradually return to level
+                        }
+
+                        // Additional roll control with Q/E keys (optional)
+                        if (gameState.keys.q) {
+                            // Roll left
+                            this.rotation.z -= PHYSICS.rollRate * deltaTime * 60;
+                        }
+                        if (gameState.keys.e) {
+                            // Roll right
+                            this.rotation.z += PHYSICS.rollRate * deltaTime * 60;
+                        }
+
+                        // Apply forward thrust based on throttle level
+                        const forwardThrust = new THREE.Vector3(0, 0, -1 * gameState.throttleLevel);
+                        forwardThrust.applyQuaternion(this.group.quaternion);
+                        forwardThrust.multiplyScalar(PHYSICS.acceleration * deltaTime * 100);
+
+                        // Apply thrust to velocity
+                        this.velocity.add(forwardThrust);
+
+                        // Apply drag
+                        this.velocity.multiplyScalar(Math.pow(PHYSICS.dragCoefficient, deltaTime * 10));
+
+                        // Limit max speed based on throttle
+                        const maxSpeed = PHYSICS.maxSpeed * (gameState.throttleLevel * 1.5 || 0.1);
+                        const speed = this.velocity.length();
+                        if (speed > maxSpeed) {
+                            this.velocity.normalize().multiplyScalar(maxSpeed);
+                        }
+
+                        // Update position based on velocity
+                        this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+                        // Update HUD if throttle changed
+                        if (Math.abs(gameState.lastThrottleUpdate - gameState.throttleLevel) > 0.01) {
+                            updateHUD();
+                            gameState.lastThrottleUpdate = gameState.throttleLevel;
+                        }
+                    }
+                    else {
+                        // Original physics for non-arcade mode
+                        const input = {
+                            forward: 0,
+                            right: 0,
+                            up: 0,
+                            pitch: 0,
+                            yaw: 0,
+                            roll: 0
+                        };
+
+                        // Basic movement controls
+                        if (gameState.keys.w) input.forward = 1;
+                        if (gameState.keys.s) input.forward = -1;
+                        if (gameState.keys.a) input.right = -1;
+                        if (gameState.keys.d) input.right = 1;
+                        if (gameState.keys.space) input.up = 1;
+                        if (gameState.keys.shift) input.up = -1;
+
+                        // Flight controls for keyboard mode
+                        if (gameState.keyboardControlMode) {
+                            // Pitch controls
+                            if (gameState.keys.arrowUp) input.pitch = 1; // Pitch up
+                            if (gameState.keys.arrowDown) input.pitch = -1; // Pitch down
+
+                            // Yaw controls
+                            if (gameState.keys.arrowLeft) input.yaw = -1; // Yaw left
+                            if (gameState.keys.arrowRight) input.yaw = 1; // Yaw right
+
+                            // Roll controls
+                            if (gameState.keys.q) input.roll = -1; // Roll left
+                            if (gameState.keys.e) input.roll = 1; // Roll right
+
+                            // Apply rotation changes
+                            this.rotation.x += input.pitch * PHYSICS.pitchRate * deltaTime * 60;
+                            this.rotation.y += input.yaw * PHYSICS.yawRate * deltaTime * 60;
+                            this.rotation.z += input.roll * PHYSICS.rollRate * deltaTime * 60;
+
+                            // Reset rotation if R key is pressed
+                            if (gameState.keys.r) {
+                                this.rotation.z *= 0.9; // Gradually level out roll
+                            }
+
+                            // Apply throttle setting
+                            input.forward = gameState.throttleLevel;
+                        }
+
+                        // Calculate thrust direction in local space
+                        const thrustDirection = new THREE.Vector3(
+                            input.right,
+                            input.up,
+                            input.forward
+                        ).normalize();
+
+                        // Convert to world space
+                        const thrust = thrustDirection.clone();
+                        thrust.applyQuaternion(this.group.quaternion);
+                        thrust.multiplyScalar(PHYSICS.acceleration * deltaTime * 100);
+
+                        // Apply thrust to velocity
+                        this.velocity.add(thrust);
+
+                        // Apply drag
+                        this.velocity.multiplyScalar(Math.pow(PHYSICS.dragCoefficient, deltaTime * 10));
+
+                        // Limit speed
+                        const maxSpeed = gameState.keyboardControlMode ?
+                            PHYSICS.maxSpeed * (gameState.throttleLevel * 1.5) :
+                            PHYSICS.maxSpeed;
+
+                        const speed = this.velocity.length();
+                        if (speed > maxSpeed) {
+                            this.velocity.normalize().multiplyScalar(maxSpeed);
+                        }
+
+                        // Update position based on velocity
+                        this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+                    }
+                }
+            };
+            
+            // Return the player object
+            return gameState.player;
+        }
+        
+        // Create a simple starfield background
+        function createStarfield() {
+            const starCount = 3000;
+            const starGeometry = new THREE.BufferGeometry();
+
+            // Generate random positions for stars
+            const starPositions = new Float32Array(starCount * 3);
+            const starSizes = new Float32Array(starCount);
+            const starColors = new Float32Array(starCount * 3);
+
+            // Add different sized and colored stars
+            for (let i = 0; i < starCount; i++) {
+                const i3 = i * 3;
+
+                // Position stars in a large sphere around the center
+                const radius = 500;
+                const phi = Math.acos(-1 + Math.random() * 2);
+                const theta = Math.random() * Math.PI * 2;
+
+                starPositions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+                starPositions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+                starPositions[i3 + 2] = radius * Math.cos(phi);
+
+                // Randomize star sizes
+                starSizes[i] = 0.5 + Math.random() * 2.5;
+
+                // Give some stars a blue/red tint for variety
+                if (Math.random() > 0.8) {
+                    // Bluish stars
+                    starColors[i3] = 0.7 + Math.random() * 0.3; // R
+                    starColors[i3 + 1] = 0.7 + Math.random() * 0.3; // G
+                    starColors[i3 + 2] = Math.random() * 0.3 + 0.7; // B
+                } else if (Math.random() > 0.8) {
+                    // Reddish stars
+                    starColors[i3] = Math.random() * 0.3 + 0.7; // R
+                    starColors[i3 + 1] = 0.4 + Math.random() * 0.3; // G
+                    starColors[i3 + 2] = 0.4 + Math.random() * 0.3; // B
+                } else {
+                    // White stars
+                    starColors[i3] = 0.9 + Math.random() * 0.1; // R
+                    starColors[i3 + 1] = 0.9 + Math.random() * 0.1; // G
+                    starColors[i3 + 2] = 0.9 + Math.random() * 0.1; // B
+                }
+            }
+
+            starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+            starGeometry.setAttribute('size', new THREE.BufferAttribute(starSizes, 1));
+            starGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+
+            // Use custom shader material for better-looking stars
+            const starMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    pointTexture: { value: null }
+                },
+                vertexShader: `
+                    attribute float size;
+                    attribute vec3 color;
+                    varying vec3 vColor;
+                    void main() {
+                        vColor = color;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = size * (300.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vColor;
+                    void main() {
+                        float r = 0.5 * length(gl_PointCoord - vec2(0.5, 0.5));
+                        if (r > 0.5) discard;
+                        gl_FragColor = vec4(vColor, 1.0) * (1.0 - 2.0 * r);
+                    }
+                `,
+                blending: THREE.AdditiveBlending,
+                depthTest: false,
+                transparent: true
+            });
+
+            const stars = new THREE.Points(starGeometry, starMaterial);
+            gameState.scene.add(stars);
+            gameState.starfield = stars;
+
+            // Add a few bright distant stars (large spheres)
+            for (let i = 0; i < 5; i++) {
+                const radius = 1 + Math.random() * 3;
+                const distance = 450 + Math.random() * 50;
+                const brightStarGeometry = new THREE.SphereGeometry(radius, 16, 16);
+                const brightStarMaterial = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color(
+                        0.9 + Math.random() * 0.1,
+                        0.9 + Math.random() * 0.1,
+                        0.9 + Math.random() * 0.1
+                    ),
+                    transparent: true,
+                    opacity: 0.8
+                });
+
+                const brightStar = new THREE.Mesh(brightStarGeometry, brightStarMaterial);
+
+                // Position randomly at far distance
+                const phi = Math.acos(-1 + Math.random() * 2);
+                const theta = Math.random() * Math.PI * 2;
+
+                brightStar.position.set(
+                    distance * Math.sin(phi) * Math.cos(theta),
+                    distance * Math.sin(phi) * Math.sin(theta),
+                    distance * Math.cos(phi)
+                );
+
+                gameState.scene.add(brightStar);
+            }
+
+            // Add a space nebula (particles with colors)
+            createNebula();
+        }
+
+        // Create a colorful space nebula
+        function createNebula() {
+            const nebulaCount = 5000;
+            const nebulaGeometry = new THREE.BufferGeometry();
+            const nebulaPositions = new Float32Array(nebulaCount * 3);
+            const nebulaColors = new Float32Array(nebulaCount * 3);
+            const nebulaSizes = new Float32Array(nebulaCount);
+
+            // Choose a color theme for the nebula
+            const nebulaThemes = [
+                {primary: [0.5, 0.2, 0.8], secondary: [0.2, 0.5, 0.9]},  // Purple/Blue
+                {primary: [0.8, 0.2, 0.2], secondary: [0.9, 0.5, 0.1]},  // Red/Orange
+                {primary: [0.1, 0.5, 0.2], secondary: [0.5, 0.8, 0.1]},  // Green
+                {primary: [0.8, 0.3, 0.5], secondary: [0.5, 0.1, 0.8]}   // Pink/Purple
+            ];
+
+            const theme = nebulaThemes[Math.floor(Math.random() * nebulaThemes.length)];
+
+            // Generate nebula points in a cloud shape
+            for (let i = 0; i < nebulaCount; i++) {
+                const i3 = i * 3;
+
+                // Position in a non-uniform cloud shape
+                const distance = 150 + Math.random() * 200;
+                const phi = Math.acos(-1 + Math.random() * 2);
+                const theta = Math.random() * Math.PI * 2;
+
+                // Add some noise to make it cloud-like
+                const noise = new THREE.Vector3(
+                    (Math.random() - 0.5) * 100,
+                    (Math.random() - 0.5) * 100,
+                    (Math.random() - 0.5) * 100
+                );
+
+                nebulaPositions[i3] = distance * Math.sin(phi) * Math.cos(theta) + noise.x;
+                nebulaPositions[i3 + 1] = distance * Math.sin(phi) * Math.sin(theta) + noise.y;
+                nebulaPositions[i3 + 2] = distance * Math.cos(phi) + noise.z;
+
+                // Randomize sizes
+                nebulaSizes[i] = 2 + Math.random() * 8;
+
+                // Colors based on theme with some variation
+                const ratio = Math.random();
+                nebulaColors[i3] = theme.primary[0] * ratio + theme.secondary[0] * (1 - ratio);
+                nebulaColors[i3 + 1] = theme.primary[1] * ratio + theme.secondary[1] * (1 - ratio);
+                nebulaColors[i3 + 2] = theme.primary[2] * ratio + theme.secondary[2] * (1 - ratio);
+            }
+
+            nebulaGeometry.setAttribute('position', new THREE.BufferAttribute(nebulaPositions, 3));
+            nebulaGeometry.setAttribute('color', new THREE.BufferAttribute(nebulaColors, 3));
+            nebulaGeometry.setAttribute('size', new THREE.BufferAttribute(nebulaSizes, 1));
+
+            const nebulaMaterial = new THREE.ShaderMaterial({
+                uniforms: {},
+                vertexShader: `
+                    attribute float size;
+                    attribute vec3 color;
+                    varying vec3 vColor;
+                    void main() {
+                        vColor = color;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = size * (100.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vColor;
+                    void main() {
+                        float r = length(gl_PointCoord - vec2(0.5, 0.5));
+                        float alpha = 0.6 * smoothstep(0.5, 0.0, r);
+                        gl_FragColor = vec4(vColor, alpha);
+                    }
+                `,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true
+            });
+
+            const nebula = new THREE.Points(nebulaGeometry, nebulaMaterial);
+            gameState.scene.add(nebula);
+            gameState.nebula = nebula;
+        }
+        
+        // Create some asteroids
+        function createAsteroids(count = 50) {
+            // Add a few large asteroid clusters
+            createAsteroidField(20, 60, 2);
+            createAsteroidField(-40, -30, 1);
+            createAsteroidField(50, -40, 1.5);
+
+            // Create individual asteroids of varying types
+            for (let i = 0; i < count; i++) {
+                // Vary the asteroid type and appearance
+                const asteroidType = Math.floor(Math.random() * 4);
+                let geometry;
+                let size;
+
+                switch (asteroidType) {
+                    case 0: // Rocky asteroid (irregular shape)
+                        size = 2 + Math.random() * 6;
+                        geometry = new THREE.IcosahedronGeometry(size, Math.floor(Math.random() * 2) + 1);
+                        // Deform geometry for more natural look
+                        const positions = geometry.attributes.position;
+                        for (let j = 0; j < positions.count; j++) {
+                            const x = positions.getX(j);
+                            const y = positions.getY(j);
+                            const z = positions.getZ(j);
+
+                            positions.setX(j, x + (Math.random() - 0.5) * size * 0.2);
+                            positions.setY(j, y + (Math.random() - 0.5) * size * 0.2);
+                            positions.setZ(j, z + (Math.random() - 0.5) * size * 0.2);
+                        }
+                        break;
+
+                    case 1: // Ice asteroid (crystalline structure)
+                        size = 1.5 + Math.random() * 4;
+                        geometry = new THREE.OctahedronGeometry(size, 1);
+                        break;
+
+                    case 2: // Metal asteroid (smoother)
+                        size = 1 + Math.random() * 4;
+                        geometry = new THREE.SphereGeometry(size, 6, 6);
+                        // Slightly deform
+                        const spherePositions = geometry.attributes.position;
+                        for (let j = 0; j < spherePositions.count; j++) {
+                            const x = spherePositions.getX(j);
+                            const y = spherePositions.getY(j);
+                            const z = spherePositions.getZ(j);
+
+                            spherePositions.setX(j, x + (Math.random() - 0.5) * size * 0.1);
+                            spherePositions.setY(j, y + (Math.random() - 0.5) * size * 0.1);
+                            spherePositions.setZ(j, z + (Math.random() - 0.5) * size * 0.1);
+                        }
+                        break;
+
+                    case 3: // Composite asteroid (complex shape)
+                        size = 2 + Math.random() * 5;
+                        geometry = new THREE.TorusGeometry(size, size/3, 8, 8);
+                        break;
+                }
+
+                // Create different types of materials based on asteroid type
+                let material;
+                switch (asteroidType) {
+                    case 0: // Rocky texture
+                        material = new THREE.MeshStandardMaterial({
+                            color: new THREE.Color(0.4 + Math.random() * 0.2,
+                                                  0.3 + Math.random() * 0.2,
+                                                  0.2 + Math.random() * 0.2),
+                            roughness: 0.8 + Math.random() * 0.2,
+                            metalness: 0.1 + Math.random() * 0.1,
+                            flatShading: true
+                        });
+                        break;
+
+                    case 1: // Ice texture (shiny blue)
+                        material = new THREE.MeshStandardMaterial({
+                            color: new THREE.Color(0.2 + Math.random() * 0.2,
+                                                  0.4 + Math.random() * 0.3,
+                                                  0.6 + Math.random() * 0.4),
+                            roughness: 0.2 + Math.random() * 0.3,
+                            metalness: 0.3 + Math.random() * 0.4,
+                            flatShading: true,
+                            emissive: new THREE.Color(0.05, 0.1, 0.15),
+                            emissiveIntensity: 0.2
+                        });
+                        break;
+
+                    case 2: // Metal texture (shiny gray)
+                        material = new THREE.MeshStandardMaterial({
+                            color: new THREE.Color(0.6 + Math.random() * 0.3,
+                                                  0.6 + Math.random() * 0.3,
+                                                  0.6 + Math.random() * 0.3),
+                            roughness: 0.1 + Math.random() * 0.3,
+                            metalness: 0.7 + Math.random() * 0.3,
+                            flatShading: true
+                        });
+                        break;
+
+                    case 3: // Composite (mixed colors)
+                        material = new THREE.MeshStandardMaterial({
+                            color: new THREE.Color(0.6 + Math.random() * 0.3,
+                                                  0.3 + Math.random() * 0.3,
+                                                  0.1 + Math.random() * 0.2),
+                            roughness: 0.5 + Math.random() * 0.5,
+                            metalness: 0.3 + Math.random() * 0.3,
+                            flatShading: true
+                        });
+                        break;
+                }
+
+                const asteroid = new THREE.Mesh(geometry, material);
+
+                // Position randomly in game space
+                const distance = 30 + Math.random() * 80;
+                const phi = Math.acos(-1 + Math.random() * 2);
+                const theta = Math.random() * Math.PI * 2;
+
+                asteroid.position.set(
+                    distance * Math.sin(phi) * Math.cos(theta),
+                    (Math.random() - 0.5) * 60,
+                    distance * Math.sin(phi) * Math.sin(theta)
+                );
+
+                // Random rotation
+                asteroid.rotation.set(
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI
+                );
+
+                // Add asteroid to scene
+                gameState.scene.add(asteroid);
+
+                // Optional: Add point light to some ice asteroids for glow effect
+                if (asteroidType === 1 && Math.random() > 0.7) {
+                    const light = new THREE.PointLight(0x66ccff, 0.5, 20);
+                    light.position.copy(asteroid.position);
+                    gameState.scene.add(light);
+                }
+
+                // Create asteroid entity
+                const asteroidEntity = {
+                    mesh: asteroid,
+                    position: asteroid.position,
+                    rotation: asteroid.rotation,
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 3,
+                        (Math.random() - 0.5) * 3,
+                        (Math.random() - 0.5) * 3
+                    ).multiplyScalar(0.2),
+                    angularVelocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.02,
+                        (Math.random() - 0.5) * 0.02,
+                        (Math.random() - 0.5) * 0.02
+                    ),
+                    radius: size,
+                    health: 20 + size * 5,
+                    type: asteroidType,
+                    isAlive: true,
+
+                    update: function(deltaTime) {
+                        // Update position
+                        this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+                        // Update rotation
+                        this.rotation.x += this.angularVelocity.x * deltaTime;
+                        this.rotation.y += this.angularVelocity.y * deltaTime;
+                        this.rotation.z += this.angularVelocity.z * deltaTime;
+
+                        // Update mesh
+                        this.mesh.position.copy(this.position);
+                        this.mesh.rotation.copy(this.rotation);
+                    }
+                };
+
+                gameState.entities.push(asteroidEntity);
+            }
+
+            // Create some enemy ships
+            createEnemyShips(5);
+        }
+
+        // Create an asteroid field at a specific location
+        function createAsteroidField(x, z, scale = 1.0) {
+            const fieldRadius = 20 * scale;
+            const count = Math.floor(15 * scale);
+
+            // Create a cluster of asteroids
+            for (let i = 0; i < count; i++) {
+                const size = (1 + Math.random() * 3) * scale;
+                const geometry = new THREE.IcosahedronGeometry(size, Math.floor(Math.random() * 2) + 1);
+
+                // Deform geometry for more natural look
+                const positions = geometry.attributes.position;
+                for (let j = 0; j < positions.count; j++) {
+                    const x = positions.getX(j);
+                    const y = positions.getY(j);
+                    const z = positions.getZ(j);
+
+                    positions.setX(j, x + (Math.random() - 0.5) * size * 0.3);
+                    positions.setY(j, y + (Math.random() - 0.5) * size * 0.3);
+                    positions.setZ(j, z + (Math.random() - 0.5) * size * 0.3);
+                }
+
+                // Create material with slight variation
+                const material = new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(
+                        0.3 + Math.random() * 0.1,
+                        0.3 + Math.random() * 0.1,
+                        0.3 + Math.random() * 0.1
+                    ),
+                    roughness: 0.8,
+                    metalness: 0.2,
+                    flatShading: true
+                });
+
+                const asteroid = new THREE.Mesh(geometry, material);
+
+                // Position within the field radius
+                const fieldX = x + (Math.random() - 0.5) * fieldRadius * 2;
+                const fieldY = (Math.random() - 0.5) * fieldRadius;
+                const fieldZ = z + (Math.random() - 0.5) * fieldRadius * 2;
+
+                asteroid.position.set(fieldX, fieldY, fieldZ);
+
+                // Random rotation
+                asteroid.rotation.set(
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI
+                );
+
+                gameState.scene.add(asteroid);
+
+                // Create asteroid entity
+                const asteroidEntity = {
+                    mesh: asteroid,
+                    position: asteroid.position,
+                    rotation: asteroid.rotation,
+                    // Asteroids in field have slower, more uniform motion
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5),
+                        (Math.random() - 0.5),
+                        (Math.random() - 0.5)
+                    ).multiplyScalar(0.1 * scale),
+                    angularVelocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.01,
+                        (Math.random() - 0.5) * 0.01,
+                        (Math.random() - 0.5) * 0.01
+                    ),
+                    radius: size,
+                    health: 20 + size * 5,
+                    type: 0, // Rocky type
+                    isAlive: true,
+
+                    update: function(deltaTime) {
+                        // Update position
+                        this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+                        // Update rotation
+                        this.rotation.x += this.angularVelocity.x * deltaTime;
+                        this.rotation.y += this.angularVelocity.y * deltaTime;
+                        this.rotation.z += this.angularVelocity.z * deltaTime;
+
+                        // Update mesh
+                        this.mesh.position.copy(this.position);
+                        this.mesh.rotation.copy(this.rotation);
+                    }
+                };
+
+                gameState.entities.push(asteroidEntity);
+            }
+        }
+
+        // Create enemy ships
+        function createEnemyShips(count = 5) {
+            for (let i = 0; i < count; i++) {
+                // Create enemy ship geometry
+                const shipGroup = new THREE.Group();
+
+                // Ship body
+                const bodyGeometry = new THREE.ConeGeometry(1, 4, 4);
+                bodyGeometry.rotateX(Math.PI / 2); // Rotate to point forward
+                const bodyMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xff3300,
+                    emissive: 0x330000,
+                    shininess: 70
+                });
+                const shipBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                shipGroup.add(shipBody);
+
+                // Ship wings
+                const wingGeometry = new THREE.BoxGeometry(3, 0.2, 1);
+                const wingMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x660000,
+                    emissive: 0x330000
+                });
+
+                // Left wing
+                const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+                leftWing.position.set(-1.5, 0, 0);
+                leftWing.rotation.z = -Math.PI / 8; // Angle wings downward
+                shipGroup.add(leftWing);
+
+                // Right wing
+                const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+                rightWing.position.set(1.5, 0, 0);
+                rightWing.rotation.z = Math.PI / 8; // Angle wings downward
+                shipGroup.add(rightWing);
+
+                // Engine glow
+                const engineLight = new THREE.PointLight(0xff5500, 2, 6);
+                engineLight.position.set(0, 0, 2);
+                shipGroup.add(engineLight);
+
+                // Position ship in game space
+                const distance = 40 + Math.random() * 60;
+                const phi = Math.acos(-1 + Math.random() * 2);
+                const theta = Math.random() * Math.PI * 2;
+
+                const posX = distance * Math.sin(phi) * Math.cos(theta);
+                const posY = (Math.random() - 0.5) * 40;
+                const posZ = distance * Math.sin(phi) * Math.sin(theta);
+
+                shipGroup.position.set(posX, posY, posZ);
+
+                // Add to scene
+                gameState.scene.add(shipGroup);
+
+                // Create enemy entity
+                const enemyEntity = {
+                    mesh: shipGroup,
+                    position: shipGroup.position,
+                    rotation: shipGroup.rotation,
+                    velocity: new THREE.Vector3(0, 0, 0),
+                    radius: 2,
+                    health: 50,
+                    isAlive: true,
+                    lastShot: 0,
+                    fireRate: 1 + Math.random(), // Shots per second
+
+                    update: function(deltaTime) {
+                        if (!gameState.player || !gameState.player.isAlive) return;
+
+                        // Basic AI: move towards player when far, orbit when close
+                        const toPlayer = new THREE.Vector3().subVectors(
+                            gameState.player.position,
+                            this.position
+                        );
+
+                        const distance = toPlayer.length();
+
+                        // Look at player
+                        this.mesh.lookAt(gameState.player.position);
+
+                        // Movement behavior
+                        if (distance > 50) {
+                            // Move towards player if far away
+                            const direction = toPlayer.normalize();
+                            this.velocity.lerp(direction.multiplyScalar(8), 0.05);
+                        } else if (distance > 30) {
+                            // Slow down as we approach
+                            const direction = toPlayer.normalize();
+                            this.velocity.lerp(direction.multiplyScalar(5), 0.05);
+                        } else {
+                            // Orbit around player when close
+                            const orbitAxis = new THREE.Vector3(0, 1, 0);
+                            const orbitDirection = new THREE.Vector3().crossVectors(toPlayer.normalize(), orbitAxis).normalize();
+                            this.velocity.lerp(orbitDirection.multiplyScalar(6), 0.05);
+                        }
+
+                        // Update position
+                        this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+                        this.mesh.position.copy(this.position);
+
+                        // Fire at player if within range and cooldown expired
+                        this.lastShot += deltaTime;
+                        if (distance < 40 && this.lastShot > 1/this.fireRate) {
+                            this.lastShot = 0;
+
+                            // Create projectile direction (forward)
+                            const direction = new THREE.Vector3(0, 0, -1);
+                            direction.applyQuaternion(this.mesh.quaternion);
+
+                            // Create projectile
+                            createEnemyLaser(this.position.clone(), direction);
+                        }
+                    }
+                };
+
+                gameState.entities.push(enemyEntity);
+            }
+        }
+
+        // Create enemy laser projectile
+        function createEnemyLaser(position, direction) {
+            // Create laser geometry
+            const geometry = new THREE.CylinderGeometry(0.05, 0.05, 2, 8);
+            geometry.rotateX(Math.PI / 2); // Align with Z axis
+
+            // Create laser material
+            const material = new THREE.MeshBasicMaterial({
+                color: 0xff3300,
+                transparent: true,
+                opacity: 0.7,
+                blending: THREE.AdditiveBlending
+            });
+
+            // Create laser mesh
+            const laser = new THREE.Mesh(geometry, material);
+            laser.position.copy(position);
+            laser.position.add(direction.clone().multiplyScalar(2)); // Start position ahead of ship
+            laser.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+
+            // Add to scene
+            gameState.scene.add(laser);
+
+            // Create laser light
+            const light = new THREE.PointLight(0xff3300, 1, 5);
+            light.position.copy(position);
+            gameState.scene.add(light);
+
+            // Create projectile object
+            const projectile = {
+                mesh: laser,
+                light: light,
+                position: position.clone(),
+                velocity: direction.clone().multiplyScalar(20), // Speed
+                lifeTime: 0,
+                maxLifeTime: 2, // 2 seconds
+                damage: 5,
+                fromPlayer: false, // This is an enemy projectile
+
+                update: function(deltaTime) {
+                    // Update position
+                    this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+                    // Update mesh and light
+                    this.mesh.position.copy(this.position);
+                    this.light.position.copy(this.position);
+
+                    // Update lifetime
+                    this.lifeTime += deltaTime;
+
+                    // Check if expired
+                    return this.lifeTime < this.maxLifeTime;
+                },
+
+                destroy: function() {
+                    gameState.scene.remove(this.mesh);
+                    gameState.scene.remove(this.light);
+                }
+            };
+
+            gameState.projectiles.push(projectile);
+        }
+        
+        // Fire primary weapon (laser)
+        function firePrimaryWeapon() {
+            if (gameState.player.weaponCooldown > 0) return;
+
+            // Set cooldown
+            gameState.player.weaponCooldown = 0.15; // 150ms - faster firing rate
+
+            // Add screen shake effect for weapon feedback
+            if (gameState.camera) {
+                // Small camera shake
+                gameState.camera.position.x += (Math.random() - 0.5) * 0.2;
+                gameState.camera.position.y += (Math.random() - 0.5) * 0.2;
+            }
+
+            // Get weapon mount positions
+            const leftMount = gameState.player.weaponMounts.primaryLeft;
+            const rightMount = gameState.player.weaponMounts.primaryRight;
+
+            // Get world positions
+            const leftPos = new THREE.Vector3();
+            const rightPos = new THREE.Vector3();
+            leftMount.getWorldPosition(leftPos);
+            rightMount.getWorldPosition(rightPos);
+
+            // Create laser direction (forward)
+            const direction = new THREE.Vector3(0, 0, -1);
+            direction.applyQuaternion(gameState.player.group.quaternion);
+
+            // Add slight spread to make it more interesting
+            const leftDir = direction.clone();
+            const rightDir = direction.clone();
+
+            // Random spread
+            leftDir.x += (Math.random() - 0.5) * 0.01;
+            leftDir.y += (Math.random() - 0.5) * 0.01;
+            rightDir.x += (Math.random() - 0.5) * 0.01;
+            rightDir.y += (Math.random() - 0.5) * 0.01;
+
+            // Create laser projectiles
+            createLaser(leftPos, leftDir);
+            createLaser(rightPos, rightDir);
+
+            // Play sound effect (if implemented later)
+        }
+        
+        // Fire secondary weapon (missile)
+        function fireSecondaryWeapon() {
+            if (gameState.player.weaponCooldown > 0 || gameState.player.missileAmmo <= 0) return;
+
+            // Set cooldown
+            gameState.player.weaponCooldown = 0.8; // 800ms - slightly faster reload
+
+            // Add significant screen shake effect for weapon feedback
+            if (gameState.camera) {
+                // Stronger camera shake for missiles
+                gameState.camera.position.x += (Math.random() - 0.5) * 0.5;
+                gameState.camera.position.y += (Math.random() - 0.5) * 0.5;
+                gameState.camera.position.z += (Math.random() - 0.5) * 0.3;
+            }
+
+            // Decrease ammo
+            gameState.player.missileAmmo--;
+
+            // Get weapon mount position
+            const mount = gameState.player.weaponMounts.secondary;
+            const position = new THREE.Vector3();
+            mount.getWorldPosition(position);
+
+            // Create missile direction (forward)
+            const direction = new THREE.Vector3(0, 0, -1);
+            direction.applyQuaternion(gameState.player.group.quaternion);
+
+            // Create missile projectile
+            createMissile(position, direction);
+
+            // Add a small kick to the ship when firing missiles
+            if (gameState.player && gameState.player.velocity) {
+                // Add backward momentum
+                const kickback = direction.clone().multiplyScalar(-0.5);
+                gameState.player.velocity.add(kickback);
+            }
+
+            // Update HUD
+            updateHUD();
+
+            // Play sound effect (if implemented later)
+        }
+        
+        // Create laser projectile
+        function createLaser(position, direction) {
+            // Create laser geometry - longer, thinner lasers
+            const geometry = new THREE.CylinderGeometry(0.03, 0.03, 3, 8);
+            geometry.rotateX(Math.PI / 2); // Align with Z axis
+
+            // Create laser material with better glow effect
+            const material = new THREE.MeshBasicMaterial({
+                color: 0xff3333, // Brighter red
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending
+            });
+
+            // Create laser mesh
+            const laser = new THREE.Mesh(geometry, material);
+            laser.position.copy(position);
+            laser.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+
+            // Add to scene
+            gameState.scene.add(laser);
+
+            // Create laser light - brighter, more visible
+            const light = new THREE.PointLight(0xff3333, 2, 6);
+            light.position.copy(position);
+            gameState.scene.add(light);
+
+            // Create trail effect
+            const trailGeometry = new THREE.CylinderGeometry(0.01, 0.08, 1, 8);
+            trailGeometry.rotateX(Math.PI / 2);
+            const trailMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffaaaa,
+                transparent: true,
+                opacity: 0.5,
+                blending: THREE.AdditiveBlending
+            });
+            const trail = new THREE.Mesh(trailGeometry, trailMaterial);
+            trail.position.copy(position);
+            trail.position.add(direction.clone().multiplyScalar(-0.5)); // Position trail behind laser
+            trail.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+            gameState.scene.add(trail);
+
+            // Create projectile object
+            const projectile = {
+                mesh: laser,
+                trail: trail,
+                light: light,
+                position: position.clone(),
+                velocity: direction.clone().multiplyScalar(35), // Faster speed
+                lifeTime: 0,
+                maxLifeTime: 1.5, // 1.5 seconds - shorter lifetime for faster pace
+                damage: 15, // More damage
+                fromPlayer: true, // Flag that this is from the player
+
+                update: function(deltaTime) {
+                    // Update position
+                    this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+                    // Update mesh and light
+                    this.mesh.position.copy(this.position);
+                    this.light.position.copy(this.position);
+
+                    // Update trail position
+                    if (this.trail) {
+                        this.trail.position.copy(this.position);
+                        this.trail.position.add(direction.clone().multiplyScalar(-0.5));
+
+                        // Make trail fade over time
+                        const remainingLifeRatio = 1 - (this.lifeTime / this.maxLifeTime);
+                        this.trail.material.opacity = 0.5 * remainingLifeRatio;
+                    }
+
+                    // Update lifetime
+                    this.lifeTime += deltaTime;
+
+                    // Check if expired
+                    return this.lifeTime < this.maxLifeTime;
+                },
+
+                destroy: function() {
+                    gameState.scene.remove(this.mesh);
+                    gameState.scene.remove(this.light);
+                    if (this.trail) {
+                        gameState.scene.remove(this.trail);
+                    }
+                }
+            };
+
+            gameState.projectiles.push(projectile);
+        }
+        
+        // Create missile projectile
+        function createMissile(position, direction) {
+            // Create missile body - larger, more detailed
+            const bodyGeometry = new THREE.ConeGeometry(0.2, 1.2, 8);
+            bodyGeometry.rotateX(-Math.PI / 2); // Align with Z axis
+
+            // Create missile material - metallic look
+            const bodyMaterial = new THREE.MeshPhongMaterial({
+                color: 0xdddddd, // Silver body
+                emissive: 0x222222,
+                shininess: 80,
+                specular: 0xffffff
+            });
+
+            // Create missile mesh
+            const missile = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            missile.position.copy(position);
+            missile.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+
+            // Create missile group to hold all parts
+            const missileGroup = new THREE.Group();
+            missileGroup.add(missile);
+            missileGroup.position.copy(position);
+            missileGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+
+            // Add fins
+            const finGeometry = new THREE.BoxGeometry(0.4, 0.1, 0.2);
+            const finMaterial = new THREE.MeshPhongMaterial({
+                color: 0xff5500,
+                emissive: 0x882200,
+                shininess: 30
+            });
+
+            // Create four fins
+            const angles = [0, Math.PI/2, Math.PI, Math.PI*1.5];
+            angles.forEach(angle => {
+                const fin = new THREE.Mesh(finGeometry, finMaterial);
+                fin.position.set(0, 0, 0.5); // Position at back of missile
+                fin.rotation.z = angle; // Rotate around missile body
+                missileGroup.add(fin);
+            });
+
+            // Add to scene
+            gameState.scene.add(missileGroup);
+
+            // Create engine trail
+            const trailGeometry = new THREE.CylinderGeometry(0.05, 0.2, 2, 8);
+            trailGeometry.rotateX(Math.PI / 2);
+            const trailMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff6600,
+                transparent: true,
+                opacity: 0.7,
+                blending: THREE.AdditiveBlending
+            });
+            const trail = new THREE.Mesh(trailGeometry, trailMaterial);
+            trail.position.copy(position);
+            trail.position.add(direction.clone().multiplyScalar(-1.2)); // Position trail behind missile
+            trail.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+            gameState.scene.add(trail);
+
+            // Create engine light - brighter
+            const light = new THREE.PointLight(0xff6600, 2, 8);
+            light.position.copy(position);
+            light.position.add(direction.clone().multiplyScalar(-0.6)); // Position at back of missile
+            gameState.scene.add(light);
+
+            // Create projectile object
+            const projectile = {
+                group: missileGroup,
+                trail: trail,
+                light: light,
+                position: position.clone(),
+                velocity: direction.clone().multiplyScalar(18), // Slightly faster than before
+                lifeTime: 0,
+                maxLifeTime: 5, // 5 seconds
+                damage: 75, // More damage
+                fromPlayer: true,
+                direction: direction.clone(), // Store direction for trail updates
+
+                update: function(deltaTime) {
+                    // Update position
+                    this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+                    // Add some slight randomness to missile path for more realism
+                    this.velocity.x += (Math.random() - 0.5) * 0.05;
+                    this.velocity.y += (Math.random() - 0.5) * 0.05;
+
+                    // Update missile and light
+                    this.group.position.copy(this.position);
+                    // Make missile face direction of travel
+                    this.group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), this.velocity.clone().normalize());
+
+                    // Update light
+                    this.light.position.copy(this.position);
+                    this.light.position.add(this.velocity.clone().normalize().multiplyScalar(-0.6));
+
+                    // Animate light intensity for rocket effect
+                    this.light.intensity = 1.5 + Math.random() * 0.5;
+
+                    // Update trail
+                    if (this.trail) {
+                        this.trail.position.copy(this.position);
+                        this.trail.position.add(this.velocity.clone().normalize().multiplyScalar(-1.2));
+                        this.trail.quaternion.copy(this.group.quaternion);
+
+                        // Randomize trail size slightly for flame effect
+                        const scale = 0.9 + Math.random() * 0.2;
+                        this.trail.scale.set(scale, scale, 1 + Math.random() * 0.3);
+                    }
+
+                    // Update lifetime
+                    this.lifeTime += deltaTime;
+
+                    // Check if expired
+                    return this.lifeTime < this.maxLifeTime;
+                },
+
+                destroy: function() {
+                    gameState.scene.remove(this.group);
+                    gameState.scene.remove(this.trail);
+                    gameState.scene.remove(this.light);
+
+                    // Create bigger explosion effect
+                    createExplosion(this.position, 2);
+                }
+            };
+
+            gameState.projectiles.push(projectile);
+        }
+        
+        // Create explosion effect
+        function createExplosion(position, size = 1) {
+            // Create explosion geometry (sphere)
+            const geometry = new THREE.SphereGeometry(size, 16, 16);
+            
+            // Create explosion material
+            const material = new THREE.MeshBasicMaterial({
+                color: 0xff5500,
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending
+            });
+            
+            // Create explosion mesh
+            const explosion = new THREE.Mesh(geometry, material);
+            explosion.position.copy(position);
+            gameState.scene.add(explosion);
+            
+            // Create explosion light
+            const light = new THREE.PointLight(0xff5500, 2, 10);
+            light.position.copy(position);
+            gameState.scene.add(light);
+            
+            // Animate explosion
+            const duration = 0.5; // seconds
+            let elapsed = 0;
+            
+            function animateExplosion() {
+                elapsed += 0.016; // ~60fps
+                
+                if (elapsed < duration) {
+                    const scale = 1 + (elapsed / duration) * 5;
+                    explosion.scale.set(scale, scale, scale);
+                    
+                    // Fade out
+                    const opacity = 1 - (elapsed / duration);
+                    material.opacity = opacity;
+                    light.intensity = 2 * opacity;
+                    
+                    requestAnimationFrame(animateExplosion);
+                } else {
+                    // Remove explosion
+                    gameState.scene.remove(explosion);
+                    gameState.scene.remove(light);
+                }
+            }
+            
+            animateExplosion();
+        }
+        
+        // Update camera to follow player
+        function updateCamera() {
+            if (!gameState.player) return;
+            
+            // Calculate ideal camera position (behind and slightly above player)
+            const offset = new THREE.Vector3(0, 5, 15);
+            offset.applyQuaternion(gameState.player.group.quaternion);
+            
+            const idealPosition = gameState.player.position.clone().add(offset);
+            
+            // Smoothly move camera
+            gameState.camera.position.lerp(idealPosition, 0.1);
+            
+            // Look at player
+            gameState.camera.lookAt(gameState.player.position);
+        }
+        
+        // Check collisions between game objects
+        function checkCollisions() {
+            if (!gameState.player || !gameState.player.isAlive) return;
+
+            // Check player against other entities (asteroids, enemies)
+            for (const entity of gameState.entities) {
+                if (!entity.isAlive || entity === gameState.player) continue;
+
+                const distance = entity.position.distanceTo(gameState.player.position);
+                const isEnemy = entity.mesh &&
+                                entity.mesh.children &&
+                                entity.mesh.children.length > 0 &&
+                                entity.fireRate !== undefined;
+
+                // Different collision radius depending on entity type
+                const collisionRadius = isEnemy ? entity.radius + 3 : entity.radius + 2;
+
+                if (distance < collisionRadius) {
+                    // Player hit something
+
+                    // Different damage for enemies vs asteroids
+                    const damageAmount = isEnemy ? 30 : 20;
+                    const shieldDamage = isEnemy ? 40 : 30;
+
+                    // Apply damage to player
+                    if (gameState.player.shield > 0) {
+                        // Damage shield first
+                        gameState.player.shield -= shieldDamage;
+                        if (gameState.player.shield < 0) {
+                            // Overflow damage to health
+                            gameState.player.health += gameState.player.shield;
+                            gameState.player.shield = 0;
+                        }
+                    } else {
+                        // Direct health damage
+                        gameState.player.health -= damageAmount;
+                    }
+
+                    // Create explosion
+                    createExplosion(entity.position, isEnemy ? 2 : 1);
+
+                    // Apply force to player (bounce)
+                    const direction = new THREE.Vector3().subVectors(
+                        gameState.player.position,
+                        entity.position
+                    ).normalize();
+
+                    gameState.player.velocity.add(direction.multiplyScalar(5));
+
+                    // Damage entity
+                    entity.health -= isEnemy ? 50 : 20;
+                    if (entity.health <= 0) {
+                        entity.isAlive = false;
+                        gameState.scene.remove(entity.mesh);
+
+                        // Create bigger explosion
+                        createExplosion(entity.position, isEnemy ? 3 : entity.radius);
+
+                        // Score or special effects for destroying enemies
+                        if (isEnemy) {
+                            // Chance for health pickup or shield boost
+                            if (Math.random() > 0.7) {
+                                gameState.player.health = Math.min(100, gameState.player.health + 20);
+                                gameState.player.shield = Math.min(100, gameState.player.shield + 30);
+
+                                // Visual feedback for pickup
+                                const healEffect = new THREE.PointLight(0x00ff00, 3, 30);
+                                healEffect.position.copy(gameState.player.position);
+                                gameState.scene.add(healEffect);
+
+                                // Remove after a short delay
+                                setTimeout(() => {
+                                    gameState.scene.remove(healEffect);
+                                }, 1000);
+                            }
+                        }
+                    }
+
+                    // Update HUD
+                    updateHUD();
+
+                    // Check player death
+                    if (gameState.player.health <= 0) {
+                        playerDeath();
+                    }
+                }
+            }
+
+            // Check projectiles against entities
+            for (let i = gameState.projectiles.length - 1; i >= 0; i--) {
+                const projectile = gameState.projectiles[i];
+
+                // Check for player hits by enemy projectiles
+                if (!projectile.fromPlayer && gameState.player && gameState.player.isAlive) {
+                    const distanceToPlayer = projectile.position.distanceTo(gameState.player.position);
+                    if (distanceToPlayer < 3) { // Player hit radius
+                        // Player hit by enemy projectile
+                        if (gameState.player.shield > 0) {
+                            gameState.player.shield -= projectile.damage;
+                            if (gameState.player.shield < 0) {
+                                gameState.player.health += gameState.player.shield;
+                                gameState.player.shield = 0;
+                            }
+                        } else {
+                            gameState.player.health -= projectile.damage;
+                        }
+
+                        // Create explosion at hit point
+                        createExplosion(projectile.position, 0.5);
+
+                        // Remove projectile
+                        projectile.destroy();
+                        gameState.projectiles.splice(i, 1);
+
+                        // Update HUD
+                        updateHUD();
+
+                        // Check player death
+                        if (gameState.player.health <= 0) {
+                            playerDeath();
+                        }
+
+                        continue; // Skip to next projectile
+                    }
+                }
+
+                // Check against other entities
+                let hitSomething = false;
+                for (const entity of gameState.entities) {
+                    // Skip if entity is not alive or if it's the player's own projectile hitting player
+                    if (!entity.isAlive || (projectile.fromPlayer && entity === gameState.player)) continue;
+
+                    // Skip if enemy projectile hitting enemy ship
+                    const isEnemy = entity.fireRate !== undefined;
+                    if (!projectile.fromPlayer && isEnemy) continue;
+
+                    const distance = entity.position.distanceTo(projectile.position);
+                    const hitRadius = entity.radius + (isEnemy ? 1.5 : 1);
+
+                    if (distance < hitRadius) {
+                        // Projectile hit entity
+                        entity.health -= projectile.damage;
+
+                        // Different explosion effect based on entity type
+                        if (isEnemy) {
+                            // Enemy hit effect - red explosion
+                            createExplosion(projectile.position, 0.8);
+                        } else {
+                            // Asteroid hit effect
+                            createExplosion(projectile.position, 0.5);
+                        }
+
+                        // Remove projectile
+                        projectile.destroy();
+                        gameState.projectiles.splice(i, 1);
+                        hitSomething = true;
+
+                        // Check if entity destroyed
+                        if (entity.health <= 0) {
+                            entity.isAlive = false;
+                            gameState.scene.remove(entity.mesh);
+
+                            // Create appropriate explosion
+                            if (isEnemy) {
+                                createExplosion(entity.position, 3);
+
+                                // Spawn pickup chance
+                                if (Math.random() > 0.7) {
+                                    gameState.player.health = Math.min(100, gameState.player.health + 15);
+                                    gameState.player.shield = Math.min(100, gameState.player.shield + 25);
+                                    updateHUD();
+
+                                    // Create pickup effect
+                                    const pickupEffect = new THREE.PointLight(0x00ff00, 2, 20);
+                                    pickupEffect.position.copy(entity.position);
+                                    gameState.scene.add(pickupEffect);
+
+                                    setTimeout(() => {
+                                        gameState.scene.remove(pickupEffect);
+                                    }, 1000);
+                                }
+
+                                // Create new enemy after delay
+                                setTimeout(() => {
+                                    // Only create new enemies if player is still alive
+                                    if (gameState.player && gameState.player.isAlive) {
+                                        createEnemyShips(1);
+                                    }
+                                }, 5000 + Math.random() * 5000);
+                            } else {
+                                // Asteroid explosion
+                                createExplosion(entity.position, entity.radius);
+
+                                // Small chance to create small asteroid fragments
+                                if (entity.radius > 3 && Math.random() > 0.7) {
+                                    createAsteroidFragments(entity.position, entity.radius);
+                                }
+                            }
+                        }
+
+                        break;
+                    }
+                }
+
+                // Skip to the next projectile if this one hit something
+                if (hitSomething) continue;
+            }
+        }
+
+        // Create small asteroid fragments when larger asteroids are destroyed
+        function createAsteroidFragments(position, parentRadius) {
+            const fragmentCount = Math.floor(Math.random() * 3) + 1;
+
+            for (let i = 0; i < fragmentCount; i++) {
+                const size = parentRadius * 0.4;
+                const geometry = new THREE.IcosahedronGeometry(size, 0);
+
+                // Random material color variations
+                const material = new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(0.4 + Math.random() * 0.2,
+                                          0.3 + Math.random() * 0.2,
+                                          0.2 + Math.random() * 0.2),
+                    roughness: 0.8,
+                    metalness: 0.2,
+                    flatShading: true
+                });
+
+                const fragment = new THREE.Mesh(geometry, material);
+
+                // Position near parent asteroid with some randomness
+                fragment.position.copy(position);
+                fragment.position.x += (Math.random() - 0.5) * parentRadius;
+                fragment.position.y += (Math.random() - 0.5) * parentRadius;
+                fragment.position.z += (Math.random() - 0.5) * parentRadius;
+
+                // Random rotation
+                fragment.rotation.set(
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI
+                );
+
+                gameState.scene.add(fragment);
+
+                // Create fragment entity with physics
+                const fragmentEntity = {
+                    mesh: fragment,
+                    position: fragment.position,
+                    rotation: fragment.rotation,
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 5,
+                        (Math.random() - 0.5) * 5,
+                        (Math.random() - 0.5) * 5
+                    ),
+                    angularVelocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.05,
+                        (Math.random() - 0.5) * 0.05,
+                        (Math.random() - 0.5) * 0.05
+                    ),
+                    radius: size,
+                    health: 10,
+                    type: 0, // Rocky type
+                    isAlive: true,
+
+                    update: function(deltaTime) {
+                        // Update position
+                        this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+                        // Update rotation
+                        this.rotation.x += this.angularVelocity.x * deltaTime;
+                        this.rotation.y += this.angularVelocity.y * deltaTime;
+                        this.rotation.z += this.angularVelocity.z * deltaTime;
+
+                        // Update mesh
+                        this.mesh.position.copy(this.position);
+                        this.mesh.rotation.copy(this.rotation);
+
+                        // Auto-destruct after some time
+                        this.health -= deltaTime;
+                        if (this.health <= 0) {
+                            this.isAlive = false;
+                            gameState.scene.remove(this.mesh);
+                        }
+                    }
+                };
+
+                gameState.entities.push(fragmentEntity);
+            }
+        }
+
+        // Handle player death
+        function playerDeath() {
+            gameState.player.health = 0;
+            gameState.player.isAlive = false;
+            gameState.scene.remove(gameState.player.group);
+
+            // Big explosion
+            createExplosion(gameState.player.position, 3);
+
+            // Add some debris
+            for (let i = 0; i < 10; i++) {
+                const debris = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.5, 0.5, 0.5),
+                    new THREE.MeshPhongMaterial({ color: 0x0088ff })
+                );
+
+                debris.position.copy(gameState.player.position);
+                debris.position.x += (Math.random() - 0.5) * 5;
+                debris.position.y += (Math.random() - 0.5) * 5;
+                debris.position.z += (Math.random() - 0.5) * 5;
+
+                gameState.scene.add(debris);
+
+                // Create debris entity
+                const debrisEntity = {
+                    mesh: debris,
+                    position: debris.position,
+                    rotation: new THREE.Euler(),
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 10,
+                        (Math.random() - 0.5) * 10,
+                        (Math.random() - 0.5) * 10
+                    ),
+                    angularVelocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.1,
+                        (Math.random() - 0.5) * 0.1,
+                        (Math.random() - 0.5) * 0.1
+                    ),
+                    radius: 0.5,
+                    health: 3 + Math.random() * 2,
+                    isAlive: true,
+
+                    update: function(deltaTime) {
+                        // Update position
+                        this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+                        // Update rotation
+                        this.rotation.x += this.angularVelocity.x * deltaTime;
+                        this.rotation.y += this.angularVelocity.y * deltaTime;
+                        this.rotation.z += this.angularVelocity.z * deltaTime;
+
+                        // Update mesh
+                        this.mesh.position.copy(this.position);
+                        this.mesh.rotation.copy(this.rotation);
+
+                        // Auto-destruct after some time
+                        this.health -= deltaTime;
+                        if (this.health <= 0) {
+                            this.isAlive = false;
+                            gameState.scene.remove(this.mesh);
+                        }
+                    }
+                };
+
+                gameState.entities.push(debrisEntity);
+            }
+
+            // Game over
+            setTimeout(() => {
+                gameState.isRunning = false;
+                menu.classList.add('active');
+            }, 3000);
+        }
+        
+        // Update HUD elements
+        function updateHUD() {
+            if (!gameState.player) return;
+
+            // Update health bar
+            const healthValue = document.querySelector('.health-value');
+            if (healthValue) {
+                const healthPercent = gameState.player.health / 100;
+                healthValue.style.transform = `scaleX(${healthPercent})`;
+            }
+
+            // Update shield bar
+            const shieldValue = document.querySelector('.shield-value');
+            if (shieldValue) {
+                const shieldPercent = gameState.player.shield / 100;
+                shieldValue.style.transform = `scaleX(${shieldPercent})`;
+            }
+
+            // Update missile ammo count
+            const missileAmmo = document.querySelector('.weapon.secondary .weapon-ammo');
+            if (missileAmmo) {
+                missileAmmo.textContent = gameState.player.missileAmmo;
+            }
+
+            // Update throttle indicator for arcade mode
+            if (gameState.arcadeMode) {
+                // Check if throttle indicator exists, create if not
+                let throttleIndicator = document.querySelector('.throttle-indicator');
+                if (!throttleIndicator) {
+                    // Create throttle indicator
+                    throttleIndicator = document.createElement('div');
+                    throttleIndicator.className = 'throttle-indicator';
+                    throttleIndicator.innerHTML = `
+                        <div class="throttle-label">THROTTLE</div>
+                        <div class="throttle-value">
+                            <div class="throttle-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="throttle-percentage">0%</div>
+                        <div class="control-mode">ARCADE MODE</div>
+                    `;
+                    hud.appendChild(throttleIndicator);
+
+                    // Add CSS for throttle indicator
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        .throttle-indicator {
+                            position: absolute;
+                            left: 20px;
+                            bottom: 20px;
+                            width: 250px;
+                            height: 40px;
+                            background-color: rgba(0, 10, 20, 0.8);
+                            border: 2px solid #0cf;
+                            box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+                            border-radius: 3px;
+                            display: flex;
+                            flex-direction: column;
+                            padding: 5px 10px;
+                        }
+
+                        .throttle-label {
+                            font-size: 12px;
+                            font-weight: bold;
+                            color: #0cf;
+                            margin-bottom: 5px;
+                        }
+
+                        .throttle-value {
+                            width: 100%;
+                            height: 10px;
+                            background-color: rgba(0, 0, 0, 0.5);
+                            border: 1px solid #088;
+                            overflow: hidden;
+                        }
+
+                        .throttle-fill {
+                            display: block;
+                            height: 100%;
+                            width: 0%;
+                            background: linear-gradient(to right, #0f0, #8f0);
+                            transition: width 0.3s ease;
+                        }
+
+                        .throttle-percentage {
+                            font-size: 14px;
+                            color: #0f0;
+                            margin-top: 2px;
+                            text-align: center;
+                        }
+
+                        .control-mode {
+                            position: absolute;
+                            right: 10px;
+                            top: 5px;
+                            font-size: 10px;
+                            color: #0ff;
+                            background-color: rgba(0, 20, 40, 0.8);
+                            padding: 2px 5px;
+                            border-radius: 3px;
+                            border: 1px solid #088;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+
+                // Update throttle indicator
+                const throttlePercentage = Math.round(gameState.throttleLevel * 100);
+                const throttleFill = throttleIndicator.querySelector('.throttle-fill');
+                const throttlePercentText = throttleIndicator.querySelector('.throttle-percentage');
+
+                if (throttleFill) {
+                    throttleFill.style.width = `${throttlePercentage}%`;
+                    throttlePercentText.textContent = `${throttlePercentage}%`;
+
+                    // Update color based on throttle level
+                    if (throttlePercentage > 75) {
+                        throttleFill.style.background = 'linear-gradient(to right, #f80, #f00)';
+                        throttlePercentText.style.color = '#f80';
+                    } else if (throttlePercentage > 25) {
+                        throttleFill.style.background = 'linear-gradient(to right, #0f0, #8f0)';
+                        throttlePercentText.style.color = '#0f0';
+                    } else {
+                        throttleFill.style.background = 'linear-gradient(to right, #08f, #0ff)';
+                        throttlePercentText.style.color = '#0ff';
+                    }
+                }
+
+                // Show throttle indicator
+                throttleIndicator.style.display = 'flex';
+
+                // Update control mode indicator
+                const controlModeIndicator = throttleIndicator.querySelector('.control-mode');
+                controlModeIndicator.textContent = 'ARCADE MODE';
+            } else {
+                // Hide throttle indicator if not in arcade mode
+                const throttleIndicator = document.querySelector('.throttle-indicator');
+                if (throttleIndicator) {
+                    throttleIndicator.style.display = 'none';
+                }
+            }
+        }
+        
+        // Update debug panel
+        function updateDebugPanel() {
+            if (!gameState.debug) return;
+            
+            const playerPos = document.getElementById('player-pos');
+            const playerRot = document.getElementById('player-rot');
+            const cameraPos = document.getElementById('camera-pos');
+            const fps = document.getElementById('fps');
+            const entityCount = document.getElementById('entity-count');
+            
+            if (gameState.player) {
+                const pos = gameState.player.position;
+                playerPos.textContent = `${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`;
+                
+                const rot = gameState.player.rotation;
+                playerRot.textContent = `${(rot.x * 180 / Math.PI).toFixed(1)}°, ${(rot.y * 180 / Math.PI).toFixed(1)}°, ${(rot.z * 180 / Math.PI).toFixed(1)}°`;
+            }
+            
+            if (gameState.camera) {
+                const pos = gameState.camera.position;
+                cameraPos.textContent = `${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`;
+            }
+            
+            // Calculate FPS
+            const now = performance.now();
+            const deltaTime = now - gameState.lastFrameTime;
+            gameState.lastFrameTime = now;
+            
+            const currentFps = 1000 / deltaTime;
+            fps.textContent = currentFps.toFixed(1);
+            
+            // Count entities
+            const aliveEntities = gameState.entities.filter(e => e.isAlive).length;
+            entityCount.textContent = `${aliveEntities} / ${gameState.projectiles.length}`;
+        }
+        
+        // Game initialization
+        function init() {
+            console.log('Initializing game...');
+            
+            // Initialize Three.js
+            initThree();
+            
+            // Create environment
+            createStarfield();
+            createAsteroids(30);
+            
+            // Add input event listeners
+            setupInputListeners();
+            
+            // Hide loading screen after initialization
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 2000);
+            
+            console.log('Game initialized successfully');
+        }
+        
+        // Setup input event listeners
+        function setupInputListeners() {
+            // Keyboard
+            document.addEventListener('keydown', (event) => {
+                switch (event.code) {
+                    // Movement controls
+                    case 'KeyW': gameState.keys.w = true; break; // Accelerate
+                    case 'KeyA': gameState.keys.a = true; break;
+                    case 'KeyS': gameState.keys.s = true; break;
+                    case 'KeyQ': gameState.keys.q = true; break; // Roll left
+                    case 'KeyE': gameState.keys.e = true; break; // Roll right
+                    case 'KeyR': gameState.keys.r = true; break; // Reset roll
+                    case 'ShiftLeft':
+                    case 'ShiftRight': gameState.keys.shift = true; break;
+
+                    // Flight controls
+                    case 'ArrowUp': gameState.keys.arrowUp = true; break; // Pitch down
+                    case 'ArrowDown': gameState.keys.arrowDown = true; break; // Pitch up
+                    case 'ArrowLeft': gameState.keys.arrowLeft = true; break; // Yaw left
+                    case 'ArrowRight': gameState.keys.arrowRight = true; break; // Yaw right
+
+                    // Weapons
+                    case 'Space':
+                        gameState.keys.space = true;
+                        if (gameState.player && gameState.isRunning && !gameState.isPaused) {
+                            firePrimaryWeapon(); // Fire immediately on key press
+                        }
+                        break;
+
+                    case 'KeyD':
+                        gameState.keys.d = true;
+                        if (gameState.player && gameState.isRunning && !gameState.isPaused) {
+                            fireSecondaryWeapon(); // Fire immediately on key press
+                        }
+                        break;
+
+                    // Toggle arcade mode (for testing)
+                    case 'KeyV':
+                        gameState.arcadeMode = !gameState.arcadeMode;
+                        if (gameState.player) {
+                            // Reset roll when switching modes
+                            gameState.player.rotation.z = 0;
+                        }
+                        updateHUD();
+                        break;
+
+                    case 'Escape':
+                        if (gameState.isRunning) {
+                            gameState.isPaused = !gameState.isPaused;
+                            menu.classList.toggle('active');
+                        }
+                        break;
+                }
+            });
+
+            document.addEventListener('keyup', (event) => {
+                switch (event.code) {
+                    // Movement controls
+                    case 'KeyW': gameState.keys.w = false; break;
+                    case 'KeyA': gameState.keys.a = false; break;
+                    case 'KeyS': gameState.keys.s = false; break;
+                    case 'KeyD': gameState.keys.d = false; break;
+                    case 'KeyQ': gameState.keys.q = false; break;
+                    case 'KeyE': gameState.keys.e = false; break;
+                    case 'KeyR': gameState.keys.r = false; break;
+                    case 'Space': gameState.keys.space = false; break;
+                    case 'ShiftLeft':
+                    case 'ShiftRight': gameState.keys.shift = false; break;
+
+                    // Flight controls
+                    case 'ArrowUp': gameState.keys.arrowUp = false; break;
+                    case 'ArrowDown': gameState.keys.arrowDown = false; break;
+                    case 'ArrowLeft': gameState.keys.arrowLeft = false; break;
+                    case 'ArrowRight': gameState.keys.arrowRight = false; break;
+                }
+            });
+
+            
+            // Mouse
+            document.addEventListener('mousemove', (event) => {
+                gameState.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                gameState.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                // Update player rotation based on mouse position (if player exists and not in arcade mode)
+                if (gameState.player && gameState.isRunning && !gameState.isPaused && !gameState.arcadeMode) {
+                    // Map mouse position to rotation (with limits)
+                    const targetRotation = new THREE.Euler(
+                        gameState.mouse.y * Math.PI * 0.3, // Pitch (limit to ±54°)
+                        gameState.mouse.x * Math.PI * 0.5,  // Yaw (limit to ±90°)
+                        0,                                  // Roll
+                        'YXZ'
+                    );
+
+                    // Smoothly interpolate current rotation towards target
+                    gameState.player.rotation.x += (targetRotation.x - gameState.player.rotation.x) * 0.1;
+                    gameState.player.rotation.y += (targetRotation.y - gameState.player.rotation.y) * 0.1;
+                }
+            });
+            
+            document.addEventListener('mousedown', (event) => {
+                if (!gameState.isRunning || gameState.isPaused) return;
+                
+                if (event.button === 0) {
+                    gameState.mouse.leftButton = true;
+                    firePrimaryWeapon();
+                } else if (event.button === 2) {
+                    gameState.mouse.rightButton = true;
+                    fireSecondaryWeapon();
+                }
+            });
+            
+            document.addEventListener('mouseup', (event) => {
+                if (event.button === 0) {
+                    gameState.mouse.leftButton = false;
+                } else if (event.button === 2) {
+                    gameState.mouse.rightButton = false;
+                }
+            });
+            
+            // Prevent context menu on right click
+            document.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+            });
+        }
+        
+        // Start game
+        function startGame() {
+            if (gameState.isRunning) return;
+            
+            console.log('Starting game...');
+            
+            // Hide menu and show HUD
+            menu.classList.remove('active');
+            hud.classList.remove('hidden');
+            
+            // Create player
+            gameState.player = createPlayer();
+            
+            // Reset game state
+            gameState.isRunning = true;
+            gameState.isPaused = false;
+            
+            // Start game loop
+            requestAnimationFrame(gameLoop);
+            
+            console.log('Game started');
+        }
+        
+        // Main game loop
+        function gameLoop(timestamp) {
+            if (!gameState.isRunning) return;
+            
+            // Calculate delta time in seconds
+            const now = timestamp;
+            const deltaTime = Math.min((now - gameState.lastFrameTime) / 1000, 0.1); // Cap at 100ms (10fps)
+            gameState.lastFrameTime = now;
+            
+            // Skip updates if game is paused
+            if (!gameState.isPaused) {
+                // Update player
+                if (gameState.player && gameState.player.isAlive) {
+                    gameState.player.update(deltaTime);
+                    
+                    // Handle weapon firing (continuous fire while mouse is held)
+                    if (gameState.mouse.leftButton) {
+                        firePrimaryWeapon();
+                    }
+
+                    if (gameState.mouse.rightButton) {
+                        fireSecondaryWeapon();
+                    }
+
+                    // Weapons are now handled directly in keydown events
+                    // No need for separate handleWeaponControls function
+                }
+                
+                // Update camera
+                updateCamera();
+                
+                // Update entities
+                const aliveEntities = [];
+                for (const entity of gameState.entities) {
+                    if (entity.isAlive) {
+                        entity.update(deltaTime);
+                        aliveEntities.push(entity);
+                    }
+                }
+                gameState.entities = aliveEntities;
+                
+                // Update projectiles
+                const activeProjectiles = [];
+                for (const projectile of gameState.projectiles) {
+                    if (projectile.update(deltaTime)) {
+                        activeProjectiles.push(projectile);
+                    } else {
+                        projectile.destroy();
+                    }
+                }
+                gameState.projectiles = activeProjectiles;
+                
+                // Rotate starfield slowly for effect
+                if (gameState.starfield) {
+                    gameState.starfield.rotation.y += 0.0001;
+                    gameState.starfield.rotation.x += 0.00005;
+                }
+                
+                // Check for collisions
+                checkCollisions();
+                
+                // Update debug panel
+                updateDebugPanel();
+            }
+            
+            // Render the scene
+            gameState.renderer.render(gameState.scene, gameState.camera);
+            
+            // Continue the game loop
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Weapons are now handled directly in keydown event listeners
+
+        // Toggle debug mode
+        function toggleDebug() {
+            gameState.debug = !gameState.debug;
+            debugPanel.style.display = gameState.debug ? 'block' : 'none';
+        }
+        
+        // Setup button event listeners
+        startButton.addEventListener('click', startGame);
+        document.getElementById('show-controls').addEventListener('click', () => {
+            alert('Controls:\n\nFLIGHT CONTROLS:\nW: Accelerate (release to slow down)\nArrow Up: Pitch up (nose up, climb)\nArrow Down: Pitch down (nose down, descend)\nArrow Left: Yaw right (turn right)\nArrow Right: Yaw left (turn left)\nQ: Roll left\nE: Roll right\n\nWEAPONS:\nSpace: Fire primary weapon (lasers)\nD: Fire secondary weapon (missiles)\n\nGENERAL:\nR: Reset roll to level\nV: Toggle flight mode\nESC: Pause game');
+        });
+        document.getElementById('toggle-debug').addEventListener('click', toggleDebug);
+        
+        // Initialize the game
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

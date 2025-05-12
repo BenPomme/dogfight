@@ -2,16 +2,21 @@
 
 ## Phase 1: Gameplay Improvements (Current Focus)
 ### 1.1 Core Gameplay Mechanics
-- [ ] Implement improved ship controls
+- [x] Implement improved ship controls
   - Add momentum and inertia
   - Improve thruster mechanics
-  - Add boost mechanics
+  - Add throttle system
   - Implement better collision response
-- [ ] Enhance combat system
+- [x] Enhance combat system
   - Add different weapon types
   - Implement weapon cooldowns
   - Add shield mechanics
-  - Create damage system with critical hits
+  - Create damage system with visual feedback
+- [x] Improve enemy AI
+  - Add target detection
+  - Implement basic attack patterns
+  - Add tactical decision making
+  - Create basic combat behavior
 - [ ] Improve drone AI
   - Add formation flying
   - Implement better target selection
@@ -19,7 +24,7 @@
   - Create different drone roles (scout, fighter, support)
 
 ### 1.2 Game Feel
-- [ ] Add visual feedback
+- [x] Add visual feedback
   - Improve explosion effects
   - Add thruster particles
   - Implement shield impact effects
@@ -29,7 +34,7 @@
   - Implement weapon sounds
   - Add engine sounds
   - Create impact sounds
-- [ ] Add screen shake and camera effects
+- [x] Add screen shake and camera effects
   - Implement damage feedback
   - Add boost camera effects
   - Create impact camera shake
@@ -160,10 +165,14 @@
 7. Regular builds and deployments
 
 ## Current Sprint Focus
-- Improve ship controls and physics
-- Enhance combat mechanics
-- Add visual and audio feedback
-- Implement basic drone AI improvements
+- ✅ Improve ship controls and physics
+- ✅ Enhance combat mechanics
+- ✅ Add visual and audio feedback
+- ✅ Implement enemy AI behavior
+- 🔄 Add collectible power-ups and upgrades
+- 🔄 Create mission objectives and progression system
+- 🔄 Implement score system and UI
+- 🔄 Enhance environment effects
 
 ## Current State
 - Local development server setup with webpack and hot reloading
@@ -173,12 +182,20 @@
 - Troubleshooting steps for common errors (port in use, missing scripts, etc.)
 
 ## Next Steps
-- Continue gameplay feature development (AI, weapons, UI)
+- Continue gameplay feature development (power-ups, missions, scoring)
+- Implement resource collection and upgrade system
+- Add more challenging enemy types and behaviors
 - Add more robust error handling and user feedback
 - Begin multiplayer and Firebase integration
 - Expand documentation for contributors
 
-## Recent Fixes
+## Recent Fixes and Improvements
+- Implemented arcade-style flight controls with improved handling
+- Added enemy AI with detection, pursuit and attack behaviors
+- Enhanced weapon systems with improved visual effects and feedback
+- Added screen shake and impact effects for better game feel
+- Implemented basic health/shield system with visual feedback
+- Upgraded explosion and projectile visual effects
 - Fixed renderer initialization to always append canvas to DOM
 - Ensured all Three.js imports are consistent through a central import file
 - Implemented proper loading screen handling
