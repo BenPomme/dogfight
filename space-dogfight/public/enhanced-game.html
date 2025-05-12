@@ -307,6 +307,9 @@
             isPaused: false,
             entities: [],
             projectiles: [],
+            powerUps: [],  // Array to store active power-ups
+            lastPowerUpSpawn: 0, // Time tracking for power-up spawning
+            powerUpSpawnRate: 10, // Seconds between power-up spawns
             player: null,
             camera: null,
             scene: null,
@@ -487,6 +490,11 @@
                 weaponCooldown: 0,
                 missileAmmo: 8,
                 isAlive: true,
+                // Power-up related properties
+                weaponBoostActive: false,
+                weaponBoostTimeRemaining: 0,
+                speedBoostActive: false,
+                speedBoostTimeRemaining: 0,
                 
                 update: function(deltaTime) {
                     // Apply physics updates
@@ -2454,10 +2462,10 @@
                     // Weapons are now handled directly in keydown events
                     // No need for separate handleWeaponControls function
                 }
-                
+
                 // Update camera
                 updateCamera();
-                
+
                 // Update entities
                 const aliveEntities = [];
                 for (const entity of gameState.entities) {
@@ -2467,7 +2475,7 @@
                     }
                 }
                 gameState.entities = aliveEntities;
-                
+
                 // Update projectiles
                 const activeProjectiles = [];
                 for (const projectile of gameState.projectiles) {
@@ -2478,6 +2486,24 @@
                     }
                 }
                 gameState.projectiles = activeProjectiles;
+
+                // Update power-ups
+                const activePowerUps = [];
+                for (const powerUp of gameState.powerUps) {
+                    if (powerUp.update(deltaTime)) {
+                        activePowerUps.push(powerUp);
+                    } else {
+                        powerUp.destroy();
+                    }
+                }
+                gameState.powerUps = activePowerUps;
+
+                // Spawn new power-ups periodically
+                gameState.lastPowerUpSpawn += deltaTime;
+                if (gameState.lastPowerUpSpawn > gameState.powerUpSpawnRate) {
+                    gameState.lastPowerUpSpawn = 0;
+                    spawnRandomPowerUp();
+                }
                 
                 // Rotate starfield slowly for effect
                 if (gameState.starfield) {
@@ -2487,7 +2513,10 @@
                 
                 // Check for collisions
                 checkCollisions();
-                
+
+                // Check for power-up collection
+                checkPowerUpCollection();
+
                 // Update debug panel
                 updateDebugPanel();
             }
@@ -2514,6 +2543,374 @@
         });
         document.getElementById('toggle-debug').addEventListener('click', toggleDebug);
         
+        // Power-up types and their properties
+        const POWER_UP_TYPES = {
+            HEALTH: {
+                name: 'Health',
+                color: 0x00ff00, // Green
+                emissiveColor: 0x00aa00,
+                effect: (player) => {
+                    player.health = Math.min(100, player.health + 30);
+                    updateHUD();
+                    showPickupMessage('Health +30', '#00ff00');
+                }
+            },
+            SHIELD: {
+                name: 'Shield',
+                color: 0x00aaff, // Blue
+                emissiveColor: 0x0066aa,
+                effect: (player) => {
+                    player.shield = Math.min(100, player.shield + 50);
+                    updateHUD();
+                    showPickupMessage('Shield +50', '#00aaff');
+                }
+            },
+            WEAPON: {
+                name: 'Weapon Boost',
+                color: 0xff0000, // Red
+                emissiveColor: 0xaa0000,
+                effect: (player) => {
+                    // Store original weapon cooldown
+                    if (!player.originalWeaponCooldown) {
+                        player.originalWeaponCooldown = 0.15; // Default cooldown value
+                    }
+
+                    // Apply weapon boost effect (faster firing)
+                    player.weaponCooldown = 0; // Reset current cooldown
+                    player.weaponBoostActive = true;
+                    player.weaponBoostTimeRemaining = 10; // 10 seconds of faster firing
+
+                    // Add visual effect to player's weapons
+                    const weaponBoostEffect = new THREE.PointLight(0xff0000, 2, 5);
+                    weaponBoostEffect.name = 'weaponBoostEffect';
+                    player.group.add(weaponBoostEffect);
+
+                    showPickupMessage('Weapon Boost! (10s)', '#ff0000');
+
+                    // Set up interval to update the boost timer
+                    player.weaponBoostInterval = setInterval(() => {
+                        player.weaponBoostTimeRemaining -= 1;
+
+                        if (player.weaponBoostTimeRemaining <= 0) {
+                            // Remove weapon boost effect
+                            clearInterval(player.weaponBoostInterval);
+                            player.weaponBoostActive = false;
+
+                            // Remove visual effect
+                            const effect = player.group.getObjectByName('weaponBoostEffect');
+                            if (effect) player.group.remove(effect);
+
+                            showPickupMessage('Weapon Boost Ended', '#aaaaaa');
+                        }
+                    }, 1000);
+                }
+            },
+            SPEED: {
+                name: 'Speed Boost',
+                color: 0xffaa00, // Orange
+                emissiveColor: 0xaa7700,
+                effect: (player) => {
+                    // Store original max speed
+                    if (!player.originalMaxSpeed) {
+                        player.originalMaxSpeed = PHYSICS.maxSpeed;
+                    }
+
+                    // Apply speed boost
+                    PHYSICS.maxSpeed = player.originalMaxSpeed * 1.5;
+                    player.speedBoostActive = true;
+                    player.speedBoostTimeRemaining = 8; // 8 seconds of speed boost
+
+                    // Add visual effect to engines
+                    const speedBoostEffect = new THREE.PointLight(0xffaa00, 3, 8);
+                    speedBoostEffect.name = 'speedBoostEffect';
+                    speedBoostEffect.position.set(0, 0, 2); // Position at engines
+                    player.group.add(speedBoostEffect);
+
+                    showPickupMessage('Speed Boost! (8s)', '#ffaa00');
+
+                    // Set up interval to update the boost timer
+                    player.speedBoostInterval = setInterval(() => {
+                        player.speedBoostTimeRemaining -= 1;
+
+                        if (player.speedBoostTimeRemaining <= 0) {
+                            // Remove speed boost effect
+                            clearInterval(player.speedBoostInterval);
+                            player.speedBoostActive = false;
+                            PHYSICS.maxSpeed = player.originalMaxSpeed;
+
+                            // Remove visual effect
+                            const effect = player.group.getObjectByName('speedBoostEffect');
+                            if (effect) player.group.remove(effect);
+
+                            showPickupMessage('Speed Boost Ended', '#aaaaaa');
+                        }
+                    }, 1000);
+                }
+            },
+            MISSILES: {
+                name: 'Missile Rack',
+                color: 0xaa00ff, // Purple
+                emissiveColor: 0x6600aa,
+                effect: (player) => {
+                    player.missileAmmo = Math.min(16, player.missileAmmo + 5);
+                    updateHUD();
+                    showPickupMessage('Missiles +5', '#aa00ff');
+                }
+            }
+        };
+
+        // Create a power-up in the game world
+        function createPowerUp(type, position) {
+            const powerUpType = POWER_UP_TYPES[type];
+
+            // Create power-up group
+            const powerUpGroup = new THREE.Group();
+
+            // Create core geometry (glowing sphere)
+            const coreGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+            const coreMaterial = new THREE.MeshPhongMaterial({
+                color: powerUpType.color,
+                emissive: powerUpType.emissiveColor,
+                emissiveIntensity: 0.7,
+                shininess: 90,
+                transparent: true,
+                opacity: 0.9
+            });
+            const core = new THREE.Mesh(coreGeometry, coreMaterial);
+            powerUpGroup.add(core);
+
+            // Create outer ring
+            const ringGeometry = new THREE.TorusGeometry(0.8, 0.1, 16, 32);
+            const ringMaterial = new THREE.MeshPhongMaterial({
+                color: powerUpType.color,
+                emissive: powerUpType.emissiveColor,
+                emissiveIntensity: 0.5,
+                shininess: 80,
+                transparent: true,
+                opacity: 0.7
+            });
+            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+            powerUpGroup.add(ring);
+
+            // Add point light for glow effect
+            const light = new THREE.PointLight(powerUpType.color, 1, 5);
+            light.position.set(0, 0, 0);
+            powerUpGroup.add(light);
+
+            // Position the power-up
+            if (!position) {
+                // Generate random position if not provided
+                const distance = 30 + Math.random() * 40;
+                const phi = Math.acos(-1 + Math.random() * 2);
+                const theta = Math.random() * Math.PI * 2;
+                position = new THREE.Vector3(
+                    distance * Math.sin(phi) * Math.cos(theta),
+                    (Math.random() - 0.5) * 30,
+                    distance * Math.sin(phi) * Math.sin(theta)
+                );
+            }
+
+            powerUpGroup.position.copy(position);
+            gameState.scene.add(powerUpGroup);
+
+            // Create power-up object
+            const powerUp = {
+                type: type,
+                group: powerUpGroup,
+                position: powerUpGroup.position,
+                radius: 1.5, // Slightly larger collision radius for easier pickup
+                rotationSpeed: 0.02 + Math.random() * 0.03, // Random rotation speed
+                bobSpeed: 0.5 + Math.random() * 0.5, // Speed of bobbing motion
+                initialY: position.y, // Store initial Y for bobbing effect
+                bobAmount: 0.5, // How much it moves up and down
+                lifeTime: 0,
+                maxLifeTime: 30, // 30 seconds before despawning
+                effect: powerUpType.effect, // Store the effect function
+
+                update: function(deltaTime) {
+                    // Update lifetime
+                    this.lifeTime += deltaTime;
+
+                    // Rotate the power-up
+                    this.group.rotation.y += this.rotationSpeed * deltaTime;
+                    ring.rotation.x += this.rotationSpeed * 0.5 * deltaTime;
+                    ring.rotation.z += this.rotationSpeed * 0.3 * deltaTime;
+
+                    // Bob up and down
+                    const bobOffset = Math.sin(this.lifeTime * this.bobSpeed) * this.bobAmount;
+                    this.group.position.y = this.initialY + bobOffset;
+
+                    // Pulse the light
+                    light.intensity = 0.8 + Math.sin(this.lifeTime * 5) * 0.2;
+
+                    // Fade out when nearing the end of lifetime
+                    if (this.lifeTime > this.maxLifeTime * 0.8) {
+                        const fadeRatio = 1 - ((this.lifeTime - (this.maxLifeTime * 0.8)) / (this.maxLifeTime * 0.2));
+                        coreMaterial.opacity = 0.9 * fadeRatio;
+                        ringMaterial.opacity = 0.7 * fadeRatio;
+                        light.intensity *= fadeRatio;
+                    }
+
+                    // Return false when lifetime expires to remove the power-up
+                    return this.lifeTime < this.maxLifeTime;
+                },
+
+                destroy: function() {
+                    gameState.scene.remove(this.group);
+                    // Optional: Add small effect when disappearing
+                    const vanishEffect = new THREE.PointLight(powerUpType.color, 2, 8);
+                    vanishEffect.position.copy(this.position);
+                    gameState.scene.add(vanishEffect);
+                    setTimeout(() => gameState.scene.remove(vanishEffect), 300);
+                }
+            };
+
+            gameState.powerUps.push(powerUp);
+            return powerUp;
+        }
+
+        // Spawn a random power-up
+        function spawnRandomPowerUp() {
+            // Only spawn if player is alive
+            if (!gameState.player || !gameState.player.isAlive) return;
+
+            // Get random power-up type
+            const types = Object.keys(POWER_UP_TYPES);
+            const randomType = types[Math.floor(Math.random() * types.length)];
+
+            // Determine spawn position (somewhat near player but not too close)
+            const playerPos = gameState.player.position.clone();
+            const randomOffset = new THREE.Vector3(
+                (Math.random() - 0.5) * 40,
+                (Math.random() - 0.5) * 20,
+                (Math.random() - 0.5) * 40
+            );
+            playerPos.add(randomOffset);
+
+            // Create the power-up
+            createPowerUp(randomType, playerPos);
+        }
+
+        // Check if player has collected any power-ups
+        function checkPowerUpCollection() {
+            if (!gameState.player || !gameState.player.isAlive) return;
+
+            const playerPos = gameState.player.position;
+
+            for (let i = gameState.powerUps.length - 1; i >= 0; i--) {
+                const powerUp = gameState.powerUps[i];
+                const distance = playerPos.distanceTo(powerUp.position);
+
+                if (distance < powerUp.radius + 3) { // Collection radius
+                    // Apply power-up effect
+                    powerUp.effect(gameState.player);
+
+                    // Remove power-up from scene and array
+                    powerUp.destroy();
+                    gameState.powerUps.splice(i, 1);
+
+                    // Create collection effect
+                    createCollectionEffect(powerUp.position, POWER_UP_TYPES[powerUp.type].color);
+                }
+            }
+        }
+
+        // Create visual effect when collecting a power-up
+        function createCollectionEffect(position, color) {
+            // Create expanding sphere effect
+            const geometry = new THREE.SphereGeometry(0.5, 16, 16);
+            const material = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.7,
+                blending: THREE.AdditiveBlending
+            });
+
+            const sphere = new THREE.Mesh(geometry, material);
+            sphere.position.copy(position);
+            gameState.scene.add(sphere);
+
+            // Add point light for flash effect
+            const light = new THREE.PointLight(color, 3, 10);
+            light.position.copy(position);
+            gameState.scene.add(light);
+
+            // Animate collection effect
+            const duration = 0.5; // seconds
+            let elapsed = 0;
+
+            function animateCollection() {
+                elapsed += 0.016; // ~60fps
+
+                if (elapsed < duration) {
+                    const scale = 1 + (elapsed / duration) * 6;
+                    sphere.scale.set(scale, scale, scale);
+
+                    // Fade out
+                    material.opacity = 0.7 * (1 - (elapsed / duration));
+                    light.intensity = 3 * (1 - (elapsed / duration));
+
+                    requestAnimationFrame(animateCollection);
+                } else {
+                    // Remove effect
+                    gameState.scene.remove(sphere);
+                    gameState.scene.remove(light);
+                }
+            }
+
+            animateCollection();
+        }
+
+        // Show a pickup message on screen
+        function showPickupMessage(message, color) {
+            // Create message element
+            const messageElement = document.createElement('div');
+            messageElement.className = 'pickup-message';
+            messageElement.textContent = message;
+            messageElement.style.color = color;
+            hud.appendChild(messageElement);
+
+            // Add styles if they don't exist yet
+            if (!document.querySelector('#pickup-message-styles')) {
+                const style = document.createElement('style');
+                style.id = 'pickup-message-styles';
+                style.textContent = `
+                    .pickup-message {
+                        position: absolute;
+                        top: 100px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background-color: rgba(0, 10, 20, 0.7);
+                        border: 1px solid currentColor;
+                        padding: 5px 15px;
+                        border-radius: 20px;
+                        font-weight: bold;
+                        white-space: nowrap;
+                        text-shadow: 0 0 5px currentColor;
+                        box-shadow: 0 0 10px currentColor;
+                        animation: message-fade 2s forwards;
+                        pointer-events: none;
+                        z-index: 100;
+                    }
+
+                    @keyframes message-fade {
+                        0% { opacity: 0; transform: translate(-50%, 20px); }
+                        20% { opacity: 1; transform: translate(-50%, 0); }
+                        80% { opacity: 1; }
+                        100% { opacity: 0; transform: translate(-50%, -20px); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Remove message after animation completes
+            setTimeout(() => {
+                if (messageElement.parentNode) {
+                    messageElement.parentNode.removeChild(messageElement);
+                }
+            }, 2000);
+        }
+
         // Initialize the game
         window.addEventListener('load', init);
     </script>
