@@ -5,9 +5,10 @@
  */
 
 import * as THREE from 'three';
+import AIController from '../ai/aiController';
 
 export default class Spaceship {
-  constructor(name, isPlayer, scene, camera) {
+  constructor(name, isPlayer, scene, camera, target = null) {
     this.name = name;
     this.isPlayer = isPlayer;
     this.scene = scene;
@@ -63,11 +64,25 @@ export default class Spaceship {
     this.boostTimeRemaining = this.stats.boostDuration;
     this.boostCooldownRemaining = 0;
     
+    // Add new physics properties
+    this.mass = 1000; // kg
+    this.drag = 0.98; // Air resistance coefficient
+    this.angularDrag = 0.95; // Angular resistance coefficient
+    this.thrusterForce = 50000; // N
+    this.maxThrusterForce = 100000; // N
+    this.boostForce = 150000; // N
+    this.inertiaTensor = new THREE.Vector3(1, 1, 1); // Moment of inertia
+    
     // Create the spaceship mesh
     this.createMesh();
     
     // Add the group to the scene
     this.scene.add(this.group);
+    
+    // Add AI controller if not a player
+    if (!isPlayer && target) {
+      this.aiController = new AIController(this, target);
+    }
   }
   
   /**
@@ -173,27 +188,40 @@ export default class Spaceship {
     const movement = input.getMovement();
     const aim = input.getAim();
     
-    // Apply thrust based on input
-    const thrustVector = new THREE.Vector3(
+    // Calculate thrust direction in local space
+    const thrustDirection = new THREE.Vector3(
       movement.right,
       movement.up,
       movement.forward
-    ).normalize().multiplyScalar(this.stats.acceleration);
-    
+    ).normalize();
+
+    // Apply thrust with variable force based on input magnitude
+    const thrustMagnitude = Math.sqrt(
+      movement.right * movement.right +
+      movement.up * movement.up +
+      movement.forward * movement.forward
+    );
+
+    // Calculate thrust force with momentum
+    const thrustForce = thrustDirection.multiplyScalar(
+      this.thrusterForce * thrustMagnitude
+    );
+
     // Apply thrust in local space
-    this.acceleration.set(0, 0, 0);
-    this.group.localToWorld(thrustVector);
-    this.acceleration.add(thrustVector);
-    
-    // Handle boost
+    this.group.localToWorld(thrustForce);
+    this.acceleration.add(thrustForce);
+
+    // Handle boost with momentum
     if (movement.boost && this.boostCooldownRemaining === 0 && this.boostTimeRemaining > 0) {
       this.isBoosting = true;
       this.boostTimeRemaining = Math.max(0, this.boostTimeRemaining - deltaTime);
       
-      // Apply boost multiplier to acceleration
-      this.acceleration.multiplyScalar(this.stats.boostMultiplier);
+      // Apply boost force with momentum
+      const boostForce = thrustDirection.clone()
+        .multiplyScalar(this.boostForce * thrustMagnitude);
+      this.group.localToWorld(boostForce);
+      this.acceleration.add(boostForce);
       
-      // Start cooldown if boost depleted
       if (this.boostTimeRemaining === 0) {
         this.isBoosting = false;
         this.boostCooldownRemaining = this.stats.boostCooldown;
@@ -201,37 +229,44 @@ export default class Spaceship {
     } else {
       this.isBoosting = false;
       
-      // Recharge boost when not in use and not on cooldown
       if (this.boostCooldownRemaining === 0 && this.boostTimeRemaining < this.stats.boostDuration) {
         this.boostTimeRemaining = Math.min(
-          this.boostTimeRemaining + deltaTime * 0.5, // Recharge at half the depletion rate
+          this.boostTimeRemaining + deltaTime * 0.5,
           this.stats.boostDuration
         );
       }
     }
-    
-    // Handle brake
+
+    // Handle brake with momentum
     if (movement.brake) {
-      // Apply braking force opposite to velocity
-      if (this.velocity.length() > 0) {
-        const brakeVector = this.velocity.clone().normalize().negate().multiplyScalar(this.stats.acceleration * 2);
-        this.acceleration.add(brakeVector);
+      const currentSpeed = this.velocity.length();
+      if (currentSpeed > 0) {
+        const brakeForce = this.velocity.clone()
+          .normalize()
+          .negate()
+          .multiplyScalar(this.thrusterForce * 2);
+        this.acceleration.add(brakeForce);
       }
     }
-    
-    // Handle aim (rotation) using mouse
-    // In a real implementation, we would use raycasting with a plane to determine aim point
-    // For now, we'll just rotate towards the mouse position
+
+    // Handle rotation with inertia
     if (Math.abs(aim.x) > 0.1 || Math.abs(aim.y) > 0.1) {
-      // Calculate target rotation based on mouse position
       const targetPitch = -aim.y * Math.PI * 0.5;
       const targetYaw = aim.x * Math.PI * 0.5;
       
-      // Apply rotation with smooth interpolation
-      this.rotation.x += (targetPitch - this.rotation.x) * deltaTime * this.stats.rotationSpeed;
-      this.rotation.y += (targetYaw - this.rotation.y) * deltaTime * this.stats.rotationSpeed;
+      // Calculate angular acceleration based on difference between current and target rotation
+      const pitchDiff = targetPitch - this.rotation.x;
+      const yawDiff = targetYaw - this.rotation.y;
+      
+      // Apply angular acceleration with inertia
+      this.angularVelocity.x += pitchDiff * this.stats.rotationSpeed * deltaTime;
+      this.angularVelocity.y += yawDiff * this.stats.rotationSpeed * deltaTime;
+      
+      // Apply inertia tensor
+      this.angularVelocity.x /= this.inertiaTensor.x;
+      this.angularVelocity.y /= this.inertiaTensor.y;
     }
-    
+
     // Handle firing weapons
     if (input.isPrimaryFiring()) {
       this.firePrimaryWeapon();
@@ -243,34 +278,52 @@ export default class Spaceship {
   }
   
   /**
-   * Handle AI behavior (to be implemented)
+   * Handle AI behavior
    */
   handleAI(deltaTime) {
-    // AI behavior will be implemented later
+    if (this.aiController) {
+      this.aiController.update(deltaTime);
+    }
   }
   
   /**
    * Update physics
    */
   updatePhysics(deltaTime) {
-    // Apply acceleration to velocity
-    this.velocity.add(this.acceleration.clone().multiplyScalar(deltaTime));
-    
-    // Apply drag (simulating space, so very low drag)
-    const drag = 0.1;
-    this.velocity.multiplyScalar(1 - drag * deltaTime);
-    
-    // Limit speed
-    const currentSpeed = this.velocity.length();
-    const maxSpeed = this.stats.maxSpeed * (this.isBoosting ? this.stats.boostMultiplier : 1);
-    
-    if (currentSpeed > maxSpeed) {
-      this.velocity.normalize().multiplyScalar(maxSpeed);
+    // Apply thrust with momentum
+    const thrustForce = this.acceleration.clone().multiplyScalar(this.thrusterForce);
+    const force = thrustForce.divideScalar(this.mass);
+    this.velocity.add(force.multiplyScalar(deltaTime));
+
+    // Apply boost force if boosting
+    if (this.isBoosting) {
+      const boostForce = this.acceleration.clone()
+        .normalize()
+        .multiplyScalar(this.boostForce)
+        .divideScalar(this.mass);
+      this.velocity.add(boostForce.multiplyScalar(deltaTime));
     }
+
+    // Apply drag (air resistance)
+    this.velocity.multiplyScalar(Math.pow(this.drag, deltaTime));
     
-    // Apply velocity to position
+    // Apply angular drag
+    this.angularVelocity.multiplyScalar(Math.pow(this.angularDrag, deltaTime));
+
+    // Update position based on velocity
     this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
-    
+
+    // Update rotation based on angular velocity
+    this.rotation.x += this.angularVelocity.x * deltaTime;
+    this.rotation.y += this.angularVelocity.y * deltaTime;
+    this.rotation.z += this.angularVelocity.z * deltaTime;
+
+    // Limit maximum speed
+    const currentSpeed = this.velocity.length();
+    if (currentSpeed > this.stats.maxSpeed) {
+      this.velocity.normalize().multiplyScalar(this.stats.maxSpeed);
+    }
+
     // Reset acceleration for next frame
     this.acceleration.set(0, 0, 0);
   }

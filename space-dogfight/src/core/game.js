@@ -25,7 +25,6 @@ export default class Game {
     
     // Get DOM elements
     this.container = document.getElementById('game-container');
-    this.canvas = document.getElementById('game-canvas');
     this.loadingScreen = document.getElementById('loading-screen');
     this.hud = document.getElementById('hud');
     this.menu = document.getElementById('menu');
@@ -48,9 +47,10 @@ export default class Game {
     
     // Initialize core systems
     this.time = new Time();
-    this.renderer = new Renderer(this.canvas, this.scene);
+    this.renderer = new Renderer(null, this.scene);
+    this.container.appendChild(this.renderer.instance.domElement);
     this.camera = new Camera(this.renderer.getAspect());
-    this.input = new Input(this.canvas);
+    this.input = new Input(this.renderer.instance.domElement);
     this.physics = new Physics();
     
     // Initialize projectile manager

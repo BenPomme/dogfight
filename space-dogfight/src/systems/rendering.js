@@ -9,15 +9,20 @@ import Stats from 'stats.js';
 
 export default class Renderer {
   constructor(canvas, scene) {
-    this.canvas = canvas;
     this.scene = scene;
-    
-    // Create WebGL renderer
-    this.instance = new THREE.WebGLRenderer({
-      canvas: this.canvas,
-      antialias: true,
-      alpha: false
-    });
+    // If canvas is provided, use it; otherwise, let Three.js create it
+    if (canvas) {
+      this.instance = new THREE.WebGLRenderer({
+        canvas: canvas,
+        antialias: true,
+        alpha: false
+      });
+    } else {
+      this.instance = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: false
+      });
+    }
     
     // Configure renderer
     this.instance.setSize(window.innerWidth, window.innerHeight);
